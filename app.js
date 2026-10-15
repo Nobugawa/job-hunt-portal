@@ -8,7 +8,11 @@ const TR={A:'Director, $150k+',B:'Founder-led manager, ~$110k+',C:'Supply chain 
 const fmtD=d=>d?new Date(d+'T12:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'—';
 const addD=(d,n)=>{const x=new Date(d+'T12:00');x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)};
 const fu=a=>a.followup||(a.status==='Applied'&&a.applied?addD(a.applied,7):'');
-const pay=a=>a.pay&&!/not posted/i.test(a.pay)?esc(a.pay):a.est?`<span class="muted">${esc(a.est.replace('ESTIMATE','est.'))}</span>`:'—';
+/* v1.2.1: single pay helper used by list AND detail so they cannot disagree */
+const payTxt=(mn,mx)=>mn?(mn===mx||!mx?`$${Math.round(mn/1000)}k`:`$${Math.round(mn/1000)}k–$${Math.round(mx/1000)}k`):'';
+const payPosted=a=>payTxt(a.payMin,a.payMax)||(a.payText&&!/not posted/i.test(a.payText)?a.payText:'');
+const payEst=a=>payTxt(a.estMin,a.estMax)?'est. '+payTxt(a.estMin,a.estMax):'';
+const pay=a=>payPosted(a)?esc(payPosted(a)):payEst(a)?`<span class="muted">${esc(payEst(a))}</span>`:'—';
 function dash(){const ap=A.filter(a=>a.status==='Applied'),wk=addD(TODAY,-7);
  const k=[['Total applied',ap.length,'#2f5bea'],['Applied this week',ap.filter(a=>a.applied>wk).length,'#7a5cff'],['Interviews / replies',A.filter(a=>a.status2).length,'#12b76a'],['Rejections',A.filter(a=>a.status==='Rejected').length,'#f04438'],['Packages ready',A.filter(a=>a.status==='Package ready').length,'#f79009'],['Skipped',A.filter(a=>a.status==='Skipped').length,'#98a2b3']];
  const order=[['Found','#98a2b3'],['Package ready','#f79009'],['Applied','#2f5bea'],['Rejected','#f04438'],['Skipped','#c0c5d0']],mx=Math.max(...order.map(o=>A.filter(a=>a.status===o[0]).length));
@@ -44,7 +48,7 @@ function detail(id){const a=A.find(x=>x.id===id);if(!a)return dash();const fn=p=
  $('#app').innerHTML=`<a class="back" href="#/list">← All applications</a><div class="card" style="margin-bottom:16px"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><div class="small muted">${a.id} · ${esc(a.industry)}</div><h1>${esc(a.company)}</h1><div style="font-size:16px">${esc(a.role)}</div><div class="muted">${esc(a.location)}</div><div style="margin-top:8px">${chip(a.statusRaw)} ${tchip(a)} <span class="chip s-Found">Fit ${esc(a.fit)}/5</span></div></div>
  <div>${a.url?`<a class="btn" href="${esc(a.url)}" target="_blank" rel="noopener">Open posting ↗</a>`:''}</div></div></div>
  <div class="dgrid"><div><div class="card" style="margin-bottom:16px"><h2>Fit notes</h2><p style="margin:0">${esc(a.fitNotes)||'—'}</p></div><div class="card" style="margin-bottom:16px"><h2>Notes</h2><p style="margin:0;white-space:pre-wrap">${esc(a.notes)||'—'}</p></div>
- <div class="card"><h2>Details</h2><dl class="kv"><dt>Pay (posted)</dt><dd>${esc(a.pay)||'—'}</dd><dt>Pay (estimate)</dt><dd>${esc(a.est)||'—'}</dd><dt>Salary asked</dt><dd>${esc(a.asked)||'<span class="muted">not recorded</span>'}</dd><dt>Apply route</dt><dd>${esc(a.route)||'—'}</dd><dt>Source</dt><dd>${esc(a.source)}</dd><dt>Commute</dt><dd>${esc(a.commute)}</dd><dt>Company</dt><dd>${esc(a.size)}</dd></dl></div></div>
+ <div class="card"><h2>Details</h2><dl class="kv"><dt>Pay (posted)</dt><dd>${esc(payPosted(a))||'—'}${a.payText&&payPosted(a)!==a.payText?`<div class="small muted">${esc(a.payText)}</div>`:''}</dd><dt>Pay (estimate)</dt><dd>${esc(payEst(a))||'—'}</dd><dt>Salary asked</dt><dd>${esc(a.asked)||'<span class="muted">not recorded</span>'}</dd><dt>Apply route</dt><dd>${esc(a.route)||'—'}</dd><dt>Source</dt><dd>${esc(a.source)}</dd><dt>Commute</dt><dd>${esc(a.commute)}</dd><dt>Company</dt><dd>${esc(a.size)}</dd></dl></div></div>
  <div><div class="card" style="margin-bottom:16px"><h2>Timeline</h2><div class="tl">
  <div style="--d:#98a2b3"><b>Found</b><div class="small muted">${fmtD(a.found)} · posted ${fmtD(a.posted)}</div></div>
  <div style="--d:${a.applied?'#2f5bea':'#d0d5dd'}"><b>Applied</b><div class="small muted">${a.applied?fmtD(a.applied):'Not yet'}</div></div>
