@@ -84,6 +84,7 @@ detail=function(id){_detail(id);const a=A.find(x=>x.id===id);if(!a)return;
  document.querySelector('.dgrid').insertAdjacentHTML('afterend',`<div class="dgrid2">${companyPanel(a)}${peoplePanel(a)}</div>`)};
 nav();
 /* ===== v1.1.0: dates/applicants, signed doc links, user notes ===== */
+/* ===== v1.2.0: medical_paid + travel on detail ===== */
 async function openDoc(path,el){const w=window.open('','_blank');const{data,error}=await window.SB.storage.from('docs').createSignedUrl(path,300);
  if(error||!data){if(w)w.close();el.insertAdjacentHTML('afterend',` <span class="small" style="color:#b42318">Couldn't open file (${esc(error?error.message:'unknown')})</span>`);return}
  if(w)w.location=data.signedUrl;else location.href=data.signedUrl}
@@ -96,7 +97,7 @@ async function loadNotes(a){const l=$('#unl');if(!l)return;const{data,error}=awa
 const _detail11=detail;
 detail=function(id){_detail11(id);const a=A.find(x=>x.id===id);if(!a)return;
  const kv=document.querySelector('.dgrid .card dl.kv');
- if(kv)kv.insertAdjacentHTML('afterbegin',`<dt>Found</dt><dd>${a.found?fmtD(a.found)+', '+a.found.slice(0,4):'—'}</dd><dt>Posted</dt><dd>${a.posted?fmtD(a.posted)+', '+a.posted.slice(0,4):'—'}</dd><dt>Applicants</dt><dd>${a.applicants!=null?esc(a.applicants):'—'}</dd>`);
+ if(kv)kv.insertAdjacentHTML('afterbegin',`<dt>Found</dt><dd>${a.found?fmtD(a.found)+', '+a.found.slice(0,4):'—'}</dd><dt>Posted</dt><dd>${a.posted?fmtD(a.posted)+', '+a.posted.slice(0,4):'—'}</dd><dt>Applicants</dt><dd>${a.applicants!=null?esc(a.applicants):'—'}</dd><dt>Medical (employer-paid)</dt><dd>${a.medical?esc(a.medical):'—'}</dd><dt>Travel</dt><dd>${a.travel?esc(a.travel):'—'}</dd>`);
  const docs=[...document.querySelectorAll('dd.small')].filter(d=>d.textContent.startsWith('📄'));
  [a.resume,a.letter].forEach((p,i)=>{const d=docs[i];if(!d)return;if(p&&p.endsWith('.pdf')){d.innerHTML=`<a href="#" class="doclink">📄 ${esc(p.split('/').pop())}</a>`;d.querySelector('a').onclick=ev=>{ev.preventDefault();openDoc(p,ev.target)}}else d.innerHTML='<span class="muted">—</span>'});
  const col=document.querySelector('.dgrid > div:first-child');if(col){col.insertAdjacentHTML('afterbegin',notesCard());
