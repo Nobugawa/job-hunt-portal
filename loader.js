@@ -17,12 +17,12 @@ async function load(){
   pay:a.pay_posted_min?rng(a.pay_posted_min,a.pay_posted_max):'',est:a.pay_est_min?'est. '+rng(a.pay_est_min,a.pay_est_max):'',found:a.date_found||'',posted:a.date_posted||'',source:a.source,url:a.posting_url,
   route:a.apply_route_raw,fit:a.fit_score,fitNotes:a.fit_notes,status:a.status==='Interview'?'Applied':a.status,status2:a.status==='Interview'?'Interview':'',statusRaw:a.status_detail||a.status,
   applied:a.date_applied||'',resume:a.resume_file,letter:a.cover_letter_file,followup:a.follow_up_date||'',contact:a.contact_text,notes:a.notes_raw,track:a.track,trackInferred:a.track_inferred,
-  asked:a.salary_asked?`$${a.salary_asked/1000}k`:''}));
+  applicants:a.applicants??null,asked:a.salary_asked?`$${a.salary_asked/1000}k`:''}));
  window.ACTIVITIES=acts.map(x=>({appId:x.application_id,seq:x.seq,date:x.date||'',dateInferred:x.date_inferred,type:x.type,text:x.text,details:x.details||[]}));
  window.COMPANIES=comps.map(c=>({id:c.id,name:c.name,match:c.match_terms||[],employees:c.employees,revenue:c.revenue,founded:c.founded,hq:c.hq,ownership:c.ownership,history:c.history,news:c.news||[],newsNote:c.news_note,competitors:c.competitors||[],competitorsNote:c.competitors_note}));
  window.CONTACTS=cons.map(c=>({id:c.id,company:c.company,name:c.name,title:c.title,relationship:c.relationship,linkedin:c.linkedin,email:c.email,phone:c.phone,bio:c.bio,sources:c.sources||[]}));
  window.INTERACTIONS=ints.map(i=>({contact:i.contact_id,date:i.date,channel:i.channel,direction:i.direction,status:i.status,summary:i.summary,next:i.next_step}));
- window.ACTION_ITEMS=items.filter(i=>i.status==='open');
+ window.SB=sb;window.ACTION_ITEMS=items.filter(i=>i.status==='open');
  window.DATA_AS_OF=(meta.find(m=>m.key==='data_as_of')||{}).value||new Date().toISOString().slice(0,10);
  document.getElementById('nav').style.display='';const s=document.createElement('script');s.src='app.js';document.body.appendChild(s)}
 document.getElementById('logout').onclick=async ev=>{ev.preventDefault();await sb.auth.signOut();location.hash='';location.reload()};

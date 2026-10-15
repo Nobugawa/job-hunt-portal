@@ -83,3 +83,24 @@ detail=function(id){_detail(id);const a=A.find(x=>x.id===id);if(!a)return;
  const cards=[...document.querySelectorAll('.dgrid > div:first-child > .card')];const notes=cards.find(c=>c.querySelector('h2')?.textContent==='Notes');if(notes)notes.outerHTML=activityPanel(a);
  document.querySelector('.dgrid').insertAdjacentHTML('afterend',`<div class="dgrid2">${companyPanel(a)}${peoplePanel(a)}</div>`)};
 nav();
+/* ===== v1.1.0: dates/applicants, signed doc links, user notes ===== */
+async function openDoc(path,el){const w=window.open('','_blank');const{data,error}=await window.SB.storage.from('docs').createSignedUrl(path,300);
+ if(error||!data){if(w)w.close();el.insertAdjacentHTML('afterend',` <span class="small" style="color:#b42318">Couldn't open file (${esc(error?error.message:'unknown')})</span>`);return}
+ if(w)w.location=data.signedUrl;else location.href=data.signedUrl}
+function notesCard(){return`<div class="card" id="unotes" style="margin-bottom:16px"><h2>📝 My notes</h2>
+ <textarea id="unb" rows="3" placeholder="Add a note…" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #d9dde6;border-radius:8px;font:inherit"></textarea>
+ <div style="margin:6px 0 10px"><button id="una" class="btn" style="border:0;cursor:pointer">Add note</button> <span id="unm" class="small muted"></span></div><div id="unl" class="small muted">Loading…</div></div>`}
+async function loadNotes(a){const l=$('#unl');if(!l)return;const{data,error}=await window.SB.from('user_notes').select('*').eq('application_id',a.id).order('created_at',{ascending:false});
+ if(error){l.innerHTML='Notes aren\'t set up yet (database table missing).';$('#una').disabled=true;return}
+ l.className='';l.innerHTML=data.length?data.map(n=>`<div style="border-top:1px solid #eef0f4;padding:8px 0"><div class="small muted">${new Date(n.created_at).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'})}</div><div style="white-space:pre-wrap">${esc(n.body)}</div></div>`).join(''):'<span class="muted small">No notes yet.</span>'}
+const _detail11=detail;
+detail=function(id){_detail11(id);const a=A.find(x=>x.id===id);if(!a)return;
+ const kv=document.querySelector('.dgrid .card dl.kv');
+ if(kv)kv.insertAdjacentHTML('afterbegin',`<dt>Found</dt><dd>${a.found?fmtD(a.found)+', '+a.found.slice(0,4):'—'}</dd><dt>Posted</dt><dd>${a.posted?fmtD(a.posted)+', '+a.posted.slice(0,4):'—'}</dd><dt>Applicants</dt><dd>${a.applicants!=null?esc(a.applicants):'—'}</dd>`);
+ const docs=[...document.querySelectorAll('dd.small')].filter(d=>d.textContent.startsWith('📄'));
+ [a.resume,a.letter].forEach((p,i)=>{const d=docs[i];if(!d)return;if(p&&p.endsWith('.pdf')){d.innerHTML=`<a href="#" class="doclink">📄 ${esc(p.split('/').pop())}</a>`;d.querySelector('a').onclick=ev=>{ev.preventDefault();openDoc(p,ev.target)}}else d.innerHTML='<span class="muted">—</span>'});
+ const col=document.querySelector('.dgrid > div:first-child');if(col){col.insertAdjacentHTML('afterbegin',notesCard());
+  $('#una').onclick=async()=>{const b=$('#unb').value.trim();if(!b)return;$('#una').disabled=true;$('#unm').textContent='Saving…';
+   const{error}=await window.SB.from('user_notes').insert({application_id:a.id,company_id:null,body:b});$('#una').disabled=false;
+   if(error){$('#unm').textContent='Error: '+error.message;return}$('#unb').value='';$('#unm').textContent='Saved';loadNotes(a)};loadNotes(a)}};
+nav();
