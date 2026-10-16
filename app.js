@@ -64,14 +64,14 @@ const ICON={package:['📦','Package built'],submitted:['🚀','Submitted'],conf
 const CH={Email:'✉️',LinkedIn:'in',InMail:'in',Phone:'📞'};
 const host=u=>{try{return new URL(u).hostname.replace('www.','')}catch(e){return u}};
 const src=u=>u?`<a class="src" href="${esc(u)}" target="_blank" rel="noopener">${esc(host(u))}</a>`:'';
-function companyFor(a){return (window.COMPANIES||[]).find(c=>c.match.some(m=>a.company.includes(m)))}
+function companyFor(a){const L=window.COMPANIES||[];const c=(a.companyId&&L.find(c=>c.id===a.companyId))||L.find(c=>c.match.some(m=>a.company.includes(m)));return c&&c.status!=='pending'?c:null}/* v1.3.1: match by company_id first */
 function fact(label,f){const v=f&&f.value;return`<dt>${label}</dt><dd>${v?`${esc(v)}${f.estimate?' <span class="est">est.</span>':''}${f.note?`<div class="small muted">${esc(f.note)}</div>`:''}<div>${src(f.source)}</div>`:'<span class="muted">—</span>'}</dd>`}
 function companyPanel(a){const c=companyFor(a);
  if(!c)return`<div class="card"><h2>🏢 Company profile</h2><div class="empty"><b>Research pending</b><div class="small muted">Employees, revenue, founded, HQ, ownership, history, recent news and competitors for ${esc(a.company)} haven't been researched yet.</div></div><dl class="kv ghost">${['Employees','Revenue','Founded','HQ','Ownership'].map(l=>`<dt>${l}</dt><dd>—</dd>`).join('')}</dl></div>`;
  return`<div class="card"><h2>🏢 Company profile <span class="small muted">· ${esc(c.name)}</span></h2><dl class="kv">${fact('Employees',c.employees)}${fact('Revenue / sales',c.revenue)}${fact('Founded',c.founded)}${fact('HQ',c.hq)}${fact('Ownership',c.ownership)}</dl>
  <h3>History</h3><p>${esc(c.history)}</p><h3>Recent news</h3>${c.news.length?`<ul class="news">${c.news.map(n=>`<li><span class="small muted">${esc(n.date)}</span> <a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.title)}</a> ${src(n.url)}</li>`).join('')}</ul>`:`<p class="small muted">${esc(c.newsNote||'None found')}</p>`}
  <h3>Likely competitors</h3><div>${c.competitors.map(x=>`<span class="chip s-Found">${esc(x)}</span>`).join(' ')||''}<div class="small muted">${esc(c.competitorsNote||'')}</div></div></div>`}
-function peoplePanel(a){const cs=(window.CONTACTS||[]).filter(c=>a.company.includes(c.company)||c.company.includes(a.company.split(' (')[0]));
+function peoplePanel(a){const cs=(window.CONTACTS||[]).filter(c=>(a.companyId&&c.companyId)?a.companyId===c.companyId:(a.company.includes(c.company)||c.company.includes(a.company.split(' (')[0])));
  const body=cs.length?cs.map(c=>{const log=(window.INTERACTIONS||[]).filter(i=>i.contact===c.id).sort((x,y)=>y.date.localeCompare(x.date));const last=log.find(i=>i.status==='sent');
  return`<div class="person"><div class="ph"><div class="av">${esc(c.name.split(' ').map(w=>w[0]).slice(0,2).join(''))}</div><div><b>${esc(c.name)}</b><div class="small">${esc(c.title)}</div><span class="chip rel">${esc(c.relationship)}</span></div></div>
  <div class="small pl">${c.linkedin?`<a href="${esc(c.linkedin)}" target="_blank" rel="noopener">LinkedIn ↗</a> `:`<span class="ph-btn">🔍 Find profile</span>`}${c.email?` · <a href="mailto:${esc(c.email)}">${esc(c.email)}</a>`:''}${c.phone?` · ${esc(c.phone)}`:''}</div>
