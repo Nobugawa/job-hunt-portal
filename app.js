@@ -112,3 +112,24 @@ nav();
 
 /* v1.2.2 compact medical */
 function medS(m){if(!m)return '<span class="muted">—</span>';const t=String(m).toLowerCase();if(/^\s*not stated|^n\/s|^unknown/.test(t))return '<span class="muted">—</span>';const up=/up to\s*100/.test(t);if(up)return 'Up to 100%';if(/fully (company|employer)[- ]paid medical|100%[^.]{0,20}(medical|health)|medical[^.]{0,20}\(100%\)/.test(t))return '100%';const p=(t.match(/(\d{1,3})\s*%[^.]{0,25}(medical|health)/)||[])[1];if(p)return p+'%';return '% n/s';}
+/* ===== v1.3.0: Communications log ===== */
+const KIND={decision:['🧭','Decision'],update:['📣','Update'],draft:['✍️','Draft'],reply:['📨','Reply'],rule:['📏','Rule'],answer:['📝','App answers']};
+const CF={q:'',co:'',k:''};
+function cmItem(c,showCo){const k=KIND[c.kind]||['•',c.kind];const a=c.appId&&A.find(x=>x.id===c.appId);
+ return`<div class="ai"><div class="ic">${k[0]}</div><div style="flex:1;min-width:0"><div class="small muted">${fmtD(c.date)} · ${k[1]}${showCo?` · ${a?`<a href="#/app/${a.id}">${esc(c.company)}</a>`:esc(c.company)}`:''}</div><div><b>${esc(c.summary)}</b></div>
+ ${c.text&&c.text!==c.summary?`<div style="white-space:pre-wrap;margin-top:4px;${c.kind==='draft'?'background:#f6f7fb;border:1px solid #e5e8ef;border-radius:8px;padding:8px;font-family:ui-monospace,monospace;font-size:13px':''}">${esc(c.text)}</div>`:''}
+ ${c.kind==='draft'?`<button class="btn cmcp" data-id="${esc(c.id)}" style="border:0;cursor:pointer;margin-top:6px;padding:4px 10px;font-size:12px">Copy</button>`:''}</div></div>`}
+const cmSort=l=>l.slice().sort((x,y)=>(y.date||'').localeCompare(x.date||'')||x.id.localeCompare(y.id));
+document.addEventListener('click',e=>{const b=e.target.closest('.cmcp');if(!b)return;const c=(window.COMMS||[]).find(x=>x.id===b.dataset.id);
+ navigator.clipboard.writeText(c.text).then(()=>{b.textContent='Copied ✓';setTimeout(()=>b.textContent='Copy',1500)})});
+function comms(){const C=window.COMMS||[];const cos=[...new Set(C.map(c=>c.company))].sort();const o=(arr,v,lab)=>`<option value="">${lab}</option>`+arr.map(x=>`<option ${x===v?'selected':''}>${esc(x)}</option>`).join('');
+ $('#app').innerHTML=`<div class="card"><h1>Communications</h1><p class="sub muted">Key findings, decisions, application answers, replies, drafts and rules from the Job Hunter chat.</p>
+ <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><input id="cq" placeholder="Search…" value="${esc(CF.q)}" style="flex:1;min-width:200px;padding:8px;border:1px solid #d9dde6;border-radius:8px">
+ <select id="cco">${o(cos,CF.co,'All companies')}</select><select id="ck"><option value="">All kinds</option>${Object.entries(KIND).map(([k,v])=>`<option value="${k}" ${k===CF.k?'selected':''}>${v[1]}</option>`).join('')}</select></div><div id="cl" class="act"></div><div id="cc" class="small muted"></div></div>`;
+ const draw=()=>{const q=CF.q.toLowerCase();const r=cmSort(C.filter(c=>(!q||[c.company,c.summary,c.text,c.appId].join(' ').toLowerCase().includes(q))&&(!CF.co||c.company===CF.co)&&(!CF.k||c.kind===CF.k)));
+  $('#cl').innerHTML=r.map(c=>cmItem(c,1)).join('')||'<p class="muted">No matches</p>';$('#cc').textContent=`${r.length} of ${C.length} entries`};
+ $('#cq').oninput=e=>{CF.q=e.target.value;draw()};$('#cco').onchange=e=>{CF.co=e.target.value;draw()};$('#ck').onchange=e=>{CF.k=e.target.value;draw()};draw()}
+const _dash13=dash;dash=function(){if(location.hash.startsWith('#/comms')){document.querySelectorAll('nav a').forEach(x=>x.classList.toggle('on',x.dataset.v==='comms'));return comms()}return _dash13()};
+const _detail13=detail;detail=function(id){_detail13(id);const a=A.find(x=>x.id===id);if(!a)return;const l=cmSort((window.COMMS||[]).filter(c=>c.appId===a.id));
+ const g=document.querySelector('.dgrid2')||document.querySelector('.dgrid');g&&g.insertAdjacentHTML('afterend',`<div class="card" style="margin-top:16px"><h2>💬 Communications</h2>${l.length?`<div class="act">${l.map(c=>cmItem(c,0)).join('')}</div>`:'<p class="muted">No communications logged</p>'}</div>`)};
+nav();

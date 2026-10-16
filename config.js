@@ -3,5 +3,5 @@ window.PORTAL_CONFIG = {
   SUPABASE_URL: "https://vixnrugeiclzukzickmq.supabase.co",
   SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_ODsRX0NFdFc9gG-qmAxleQ_412Xkh2g',
   ALLOWED_EMAIL: "philoskim990@gmail.com",
-  VERSION: "v1.2.2"
+  VERSION: "v1.3.0"
 };
