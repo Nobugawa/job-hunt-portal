@@ -111,4 +111,4 @@ detail=function(id){_detail11(id);const a=A.find(x=>x.id===id);if(!a)return;
 nav();
 
 /* v1.2.2 compact medical */
-function medS(m){if(!m)return '<span class="muted">—</span>';const t=String(m).toLowerCase();if(/not stated|n\/s|unknown/.test(t))return '<span class="muted">—</span>';const up=/up to/.test(t);const p=(t.match(/(\d{1,3})\s*%/)||[])[1];if(p)return (up?'Up to ':'')+p+'%';if(/100|fully|full/.test(t))return (up?'Up to ':'')+'100%';return '% n/s';}
+function medS(m){if(!m)return '<span class="muted">—</span>';const t=String(m).toLowerCase();if(/^\s*not stated|^n\/s|^unknown/.test(t))return '<span class="muted">—</span>';const up=/up to\s*100/.test(t);if(up)return 'Up to 100%';if(/fully (company|employer)[- ]paid medical|100%[^.]{0,20}(medical|health)|medical[^.]{0,20}\(100%\)/.test(t))return '100%';const p=(t.match(/(\d{1,3})\s*%[^.]{0,25}(medical|health)/)||[])[1];if(p)return p+'%';return '% n/s';}
