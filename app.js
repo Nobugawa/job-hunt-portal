@@ -36,12 +36,12 @@ function list(){const opts=(arr,v)=>arr.map(x=>`<option ${x===v?'selected':''}>$
  <select id="tr"><option value="">All tracks</option>${['A','B','C'].map(t=>`<option value="${t}" ${F.tr===t?'selected':''}>Track ${t}</option>`).join('')}</select>
  <select id="rt"><option value="">All routes</option>${opts([...new Set(A.map(a=>a.routeN))],F.rt)}</select>
  <input type="date" id="from" value="${F.from}" title="Applied from"><input type="date" id="to" value="${F.to}" title="Applied to"></div>
- <table><thead><tr>${[['company','Company / role'],['status','Status'],['track','Track'],['applied','Applied'],['pay','Pay range'],['asked','Salary asked'],['routeN','Route']].map(([k,l])=>`<th data-k="${k}">${l}${F.sort===k?(F.dir>0?' ▲':' ▼'):''}</th>`).join('')}</tr></thead><tbody id="tb"></tbody></table><div id="cnt" class="small muted" style="margin-top:10px"></div></div>`;
+ <table><thead><tr>${[['company','Company / role'],['status','Status'],['track','Track'],['applied','Applied'],['pay','Pay range'],['asked','Salary asked'],['medical','Medical'],['routeN','Route']].map(([k,l])=>`<th data-k="${k}">${l}${F.sort===k?(F.dir>0?' ▲':' ▼'):''}</th>`).join('')}</tr></thead><tbody id="tb"></tbody></table><div id="cnt" class="small muted" style="margin-top:10px"></div></div>`;
  ['q','st','tr','rt','from','to'].forEach(id=>$('#'+id).oninput=e=>{F[id]=e.target.value;rows()});
  document.querySelectorAll('th').forEach(th=>th.onclick=()=>{const k=th.dataset.k;F.dir=F.sort===k?-F.dir:1;F.sort=k;list()});rows()}
 function rows(){const q=F.q.toLowerCase();let r=A.filter(a=>(!q||[a.company,a.role,a.notes,a.location,a.id].join(' ').toLowerCase().includes(q))&&(!F.st||a.status===F.st)&&(!F.tr||a.track===F.tr)&&(!F.rt||a.routeN===F.rt)&&(!F.from||a.applied>=F.from)&&(!F.to||(a.applied&&a.applied<=F.to)));
  r.sort((x,y)=>String(x[F.sort]||'').localeCompare(String(y[F.sort]||''))*F.dir);
- $('#tb').innerHTML=r.map(a=>`<tr class="r" data-id="${a.id}"><td class="k"><div class="co">${esc(a.company)}</div><div>${esc(a.role)}</div><div class="small muted">${esc(a.location)}</div><div class="mob small">${chip(a.status)} ${tchip(a)} · ${fmtD(a.applied)}</div></td><td>${chip(a.status)}</td><td>${tchip(a)}</td><td>${fmtD(a.applied)}</td><td class="small">${pay(a)}</td><td>${a.asked?esc(a.asked):'<span class="muted">—</span>'}</td><td class="small">${esc(a.routeN)}</td></tr>`).join('');
+ $('#tb').innerHTML=r.map(a=>`<tr class="r" data-id="${a.id}"><td class="k"><div class="co">${esc(a.company)}</div><div>${esc(a.role)}</div><div class="small muted">${esc(a.location)}</div><div class="mob small">${chip(a.status)} ${tchip(a)} · ${fmtD(a.applied)}</div></td><td>${chip(a.status)}</td><td>${tchip(a)}</td><td>${fmtD(a.applied)}</td><td class="small">${pay(a)}</td><td>${a.asked?esc(a.asked):'<span class="muted">—</span>'}</td><td class="small" title="${esc(a.medical||'')}">${medS(a.medical)}</td><td class="small">${esc(a.routeN)}</td></tr>`).join('');
  $('#cnt').textContent=`Showing ${r.length} of ${A.length}`;document.querySelectorAll('tr.r').forEach(t=>t.onclick=()=>location.hash='#/app/'+t.dataset.id)}
 function detail(id){const a=A.find(x=>x.id===id);if(!a)return dash();const fn=p=>p?esc(p.split('/').pop()):'—';
  const conf=/confirm/i.test(a.notes),rep=a.status2||a.status==='Rejected';
@@ -109,3 +109,6 @@ detail=function(id){_detail11(id);const a=A.find(x=>x.id===id);if(!a)return;
    const{error}=await window.SB.from('user_notes').insert({application_id:a.id,company_id:null,body:b});$('#una').disabled=false;
    if(error){$('#unm').textContent='Error: '+error.message;return}$('#unb').value='';$('#unm').textContent='Saved';loadNotes(a)};loadNotes(a)}};
 nav();
+
+/* v1.2.2 compact medical */
+function medS(m){if(!m)return '<span class="muted">—</span>';const t=String(m).toLowerCase();if(/not stated|n\/s|unknown/.test(t))return '<span class="muted">—</span>';const up=/up to/.test(t);const p=(t.match(/(\d{1,3})\s*%/)||[])[1];if(p)return (up?'Up to ':'')+p+'%';if(/100|fully|full/.test(t))return (up?'Up to ':'')+'100%';return '% n/s';}
