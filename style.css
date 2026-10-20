@@ -47,3 +47,6 @@ details summary{font-size:11px;color:#6b7385;cursor:pointer}details code{display
 .insights .real{background:#f5f8ff;border:1px solid #c7d7fe;margin-bottom:8px}
 .insights .real p{margin:0;line-height:1.5}
 .insights ul.ins{margin:0;padding-left:18px}.insights ul.ins li{margin:3px 0}
+
+/* v1.4.2 find-people links */
+.fp{display:inline-block;border:1px solid #c7d2fe;background:#eef2ff;border-radius:6px;padding:2px 9px;margin:2px 2px 0 0;font-size:12px;font-weight:600;color:#2f5bea;cursor:pointer}.fp:hover{background:#e0e7ff;text-decoration:none}.fpw{margin-top:8px;padding-top:8px;border-top:1px dashed #e5e8ef;text-align:left}

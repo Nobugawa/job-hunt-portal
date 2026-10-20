@@ -17,7 +17,7 @@ async function load(){
   payMin:a.pay_posted_min,payMax:a.pay_posted_max,payText:a.pay_posted_text||'',estMin:a.pay_est_min,estMax:a.pay_est_max,pay:a.pay_posted_min?rng(a.pay_posted_min,a.pay_posted_max):'',est:a.pay_est_min?'est. '+rng(a.pay_est_min,a.pay_est_max):'',found:a.date_found||'',posted:a.date_posted||'',source:a.source,url:a.posting_url,
   route:a.apply_route_raw,fit:a.fit_score,fitNotes:a.fit_notes,status:a.status==='Interview'?'Applied':a.status,status2:a.status==='Interview'?'Interview':'',statusRaw:a.status_detail||a.status,
   applied:a.date_applied||'',resume:a.resume_file,letter:a.cover_letter_file,followup:a.follow_up_date||'',contact:a.contact_text,notes:a.notes_raw,track:a.track,trackInferred:a.track_inferred,
-  applicants:a.applicants??null,asked:a.salary_asked?`$${a.salary_asked/1000}k`:'',medical:a.medical_paid||'',travel:a.travel||'',best:a.best_aspects||'',worst:a.worst_aspects||'',real:a.real_job||''}));
+  applicants:a.applicants??null,asked:a.salary_asked_text||(a.salary_asked?`$${a.salary_asked/1000}k`:''),medical:a.medical_paid||'',travel:a.travel||'',best:a.best_aspects||'',worst:a.worst_aspects||'',real:a.real_job||''}));
  const cmT=await sb.from('communications').select('*').limit(5000);
  window.COMMS=(!cmT.error&&cmT.data.length?cmT.data.map(c=>({id:c.id,date:c.date||'',appId:c.application_id,company:c.company,kind:c.kind,summary:c.summary,text:c.full_text||c.summary})):
   acts.filter(x=>(x.type||'').startsWith('comm-')).map(x=>({id:x.id,date:x.date||'',appId:x.application_id,company:(x.details||[])[0]||'General',kind:x.type.slice(5),summary:x.text,text:(x.details||[])[1]||x.text})));
