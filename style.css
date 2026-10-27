@@ -50,3 +50,18 @@ details summary{font-size:11px;color:#6b7385;cursor:pointer}details code{display
 
 /* v1.4.2 find-people links */
 .fp{display:inline-block;border:1px solid #c7d2fe;background:#eef2ff;border-radius:6px;padding:2px 9px;margin:2px 2px 0 0;font-size:12px;font-weight:600;color:#2f5bea;cursor:pointer}.fp:hover{background:#e0e7ff;text-decoration:none}.fpw{margin-top:8px;padding-top:8px;border-top:1px dashed #e5e8ef;text-align:left}
+
+/* v1.5.2 bulk select */
+.chkf{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid #d9dde6;border-radius:8px;background:#fff;font-size:13px;cursor:pointer;user-select:none}
+.bulkbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin:4px 0 8px;padding:10px 12px;background:#f8faff;border:1px solid #e5e8ef;border-radius:10px}
+.bulkt,.bulkacts{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn.ghost{background:#fff;color:#2f5bea;border:1px solid #c7d2fe}
+.btn.warn{background:#b42318}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+th.cb,td.cb{width:36px;padding-right:4px;cursor:default}
+td.cb input{width:16px;height:16px;cursor:pointer}
+td.idcol{white-space:nowrap;font-size:12px;vertical-align:middle}
+td.idcol code,.mob code{font-size:11px;background:#f1f3f8;padding:2px 6px;border-radius:4px;color:#4a5263}
+tr.r.on{background:#eef2ff}
+@media(max-width:640px){table td.cb,table td.idcol{display:none!important}.bulkbar{flex-direction:column;align-items:stretch}}
+

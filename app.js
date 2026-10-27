@@ -158,3 +158,84 @@ const _detail14=detail;detail=function(id){_detail14(id);const a=A.find(x=>x.id=
  const hd=document.querySelector('#app > .card .small.muted');if(hd&&!hd.querySelector('.fd'))hd.insertAdjacentHTML('beforeend',` · <span class="fd">Found ${a.found?fmtD(a.found)+', '+a.found.slice(0,4):'—'}</span>`);
  const col=document.querySelector('.dgrid');if(col)col.insertAdjacentHTML('beforebegin',insightsCard(a))};
 nav();
+
+/* ===== v1.5.2: Applications list checkboxes + JH-ID + portal_actions queue ===== */
+const SEL_KEY='jhp_checked_ids';
+const loadSel=()=>{try{return new Set(JSON.parse(localStorage.getItem(SEL_KEY)||'[]'))}catch(e){return new Set()}};
+const saveSel=s=>{try{localStorage.setItem(SEL_KEY,JSON.stringify([...s]))}catch(e){}};
+let SEL=loadSel();
+F.checkedOnly=F.checkedOnly||false;
+const todayISO=()=>new Date().toLocaleDateString('en-CA',{timeZone:'America/New_York'}); /* YYYY-MM-DD in ET */
+function selCnt(){const n=SEL.size;const el=$('#selCnt');if(el)el.textContent=n?`${n} selected`:'0 selected';
+ document.querySelectorAll('#actApply,#actPass,#actPackage,#actHold').forEach(b=>{if(b)b.disabled=!n});
+ const msg=$('#actMsg');if(msg&&!msg.dataset.sticky)msg.textContent=''}
+function setActMsg(t,ok){const m=$('#actMsg');if(!m)return;m.dataset.sticky='1';m.style.color=ok?'#067647':'#b42318';m.textContent=t;
+ setTimeout(()=>{m.dataset.sticky='';if(m.textContent===t)m.textContent=''},5000)}
+async function queueActions(action){const ids=[...SEL];if(!ids.length)return;
+ let note=null;
+ if(action==='pass'){const d=todayISO();const r=prompt('Pass reason (optional):',`user pass ${d}`);if(r===null)return;note=(r.trim()||`user pass ${d}`)}
+ if(action==='hold'){const r=prompt('Hold note / until date (optional):','');if(r===null)return;note=r.trim()||null}
+ const labels={apply:'Apply',pass:'Pass',package:'Package',hold:'Hold'};
+ const btns=['#actApply','#actPass','#actPackage','#actHold'].map(s=>$(s)).filter(Boolean);
+ btns.forEach(b=>b.disabled=true);
+ const row={action,application_ids:ids,note,status:'pending'};
+ try{const{data:{session}}=await window.SB.auth.getSession();if(session?.user?.email)row.created_by=session.user.email}catch(e){}
+ const{error}=await window.SB.from('portal_actions').insert(row);
+ if(error){setActMsg('Could not queue: '+error.message+(/relation|schema cache|does not exist/i.test(error.message)?' (run alter_portal_actions.sql in Supabase)':''),0);selCnt();return}
+ setActMsg(`Queued ${ids.length} role${ids.length===1?'':'s'} for ${labels[action]}`,1);
+ SEL=new Set();saveSel(SEL);rows()}
+const _list152=list,_rows152=rows;
+list=function(){const opts=(arr,v)=>arr.map(x=>`<option ${x===v?'selected':''}>${x}</option>`).join('');
+ $('#app').innerHTML=`<h1>Applications</h1><p class="sub">${A.length} roles tracked</p><div class="card"><div class="filters">
+ <input type="search" id="q" placeholder="Search company, role, notes, JH-ID…" value="${esc(F.q)}">
+ <select id="st"><option value="">All statuses</option>${opts([...new Set(A.map(a=>a.status))],F.st)}</select>
+ <select id="tr"><option value="">All tracks</option>${['A','B','C'].map(t=>`<option value="${t}" ${F.tr===t?'selected':''}>Track ${t}</option>`).join('')}</select>
+ <select id="rt"><option value="">All routes</option>${opts([...new Set(A.map(a=>a.routeN))],F.rt)}</select>
+ <input type="date" id="from" value="${F.from}" title="Applied from"><input type="date" id="to" value="${F.to}" title="Applied to">
+ <label class="chkf" title="Show only rows you have checked"><input type="checkbox" id="checkedOnly" ${F.checkedOnly?'checked':''}> Checked only</label></div>
+ <div class="bulkbar"><div class="bulkt">
+  <button type="button" class="btn ghost" id="selAll">Select all (visible)</button>
+  <button type="button" class="btn ghost" id="selClear">Clear</button>
+  <button type="button" class="btn ghost" id="selInv">Invert</button>
+  <span id="selCnt" class="small muted">0 selected</span></div>
+ <div class="bulkacts">
+  <button type="button" class="btn" id="actApply" disabled>Apply</button>
+  <button type="button" class="btn warn" id="actPass" disabled>Pass</button>
+  <button type="button" class="btn" id="actPackage" disabled>Package</button>
+  <button type="button" class="btn ghost" id="actHold" disabled>Hold</button></div></div>
+ <div id="actMsg" class="small" style="min-height:1.2em;margin:4px 0 8px"></div>
+ <table><thead><tr>
+ <th class="cb" title="Select"></th>
+ ${[['id','ID'],['company','Company / role'],['status','Status'],['track','Track'],['found','Found'],['applied','Applied'],['pay','Pay range'],['asked','Salary asked'],['medical','Medical'],['routeN','Route']].map(([k,l])=>`<th data-k="${k}">${l}${F.sort===k?(F.dir>0?' ▲':' ▼'):''}</th>`).join('')}
+ </tr></thead><tbody id="tb"></tbody></table><div id="cnt" class="small muted" style="margin-top:10px"></div></div>`;
+ ['q','st','tr','rt','from','to'].forEach(id=>$('#'+id).oninput=e=>{F[id]=e.target.value;rows()});
+ $('#checkedOnly').onchange=e=>{F.checkedOnly=e.target.checked;rows()};
+ document.querySelectorAll('th[data-k]').forEach(th=>th.onclick=()=>{const k=th.dataset.k;F.dir=F.sort===k?-F.dir:1;F.sort=k;list()});
+ $('#selAll').onclick=()=>{const vis=window._LIST_VIS||[];vis.forEach(a=>SEL.add(a.id));saveSel(SEL);rows()};
+ $('#selClear').onclick=()=>{SEL=new Set();saveSel(SEL);rows()};
+ $('#selInv').onclick=()=>{const vis=window._LIST_VIS||[];vis.forEach(a=>{if(SEL.has(a.id))SEL.delete(a.id);else SEL.add(a.id)});saveSel(SEL);rows()};
+ $('#actApply').onclick=()=>queueActions('apply');
+ $('#actPass').onclick=()=>queueActions('pass');
+ $('#actPackage').onclick=()=>queueActions('package');
+ $('#actHold').onclick=()=>queueActions('hold');
+ rows()};
+rows=function(){const q=F.q.toLowerCase();let r=A.filter(a=>(!q||[a.company,a.role,a.notes,a.location,a.id].join(' ').toLowerCase().includes(q))&&(!F.st||a.status===F.st)&&(!F.tr||a.track===F.tr)&&(!F.rt||a.routeN===F.rt)&&(!F.from||a.applied>=F.from)&&(!F.to||(a.applied&&a.applied<=F.to))&&(!F.checkedOnly||SEL.has(a.id)));
+ r.sort((x,y)=>String(x[F.sort]||'').localeCompare(String(y[F.sort]||''),undefined,{numeric:true})*F.dir);
+ window._LIST_VIS=r;
+ $('#tb').innerHTML=r.map(a=>`<tr class="r${SEL.has(a.id)?' on':''}" data-id="${a.id}">
+ <td class="cb"><input type="checkbox" class="rowcb" data-id="${esc(a.id)}" ${SEL.has(a.id)?'checked':''} aria-label="Select ${esc(a.id)}"></td>
+ <td class="idcol"><code>${esc(a.id)}</code></td>
+ <td class="k"><div class="co">${esc(a.company)}</div><div>${esc(a.role)}</div><div class="small muted">${esc(a.location)}</div><div class="mob small"><code>${esc(a.id)}</code> · ${chip(a.status)} ${tchip(a)} · found ${fmtD(a.found)}${a.applied?' · applied '+fmtD(a.applied):''}</div></td>
+ <td>${chip(a.status)}</td><td>${tchip(a)}</td><td class="small">${fmtD(a.found)}</td><td>${fmtD(a.applied)}</td><td class="small">${pay(a)}</td><td>${a.asked?esc(a.asked):'<span class="muted">—</span>'}</td><td class="small" title="${esc(a.medical||'')}">${medS(a.medical)}</td><td class="small">${esc(a.routeN)}</td></tr>`).join('');
+ $('#cnt').textContent=`Showing ${r.length} of ${A.length}`+(SEL.size?` · ${SEL.size} checked (all filters)`:'');
+ document.querySelectorAll('tr.r').forEach(t=>{
+  t.onclick=e=>{if(e.target.closest('.rowcb')||e.target.closest('td.cb'))return;location.hash='#/app/'+t.dataset.id};
+ });
+ document.querySelectorAll('.rowcb').forEach(cb=>{
+  cb.onclick=e=>e.stopPropagation();
+  cb.onchange=e=>{e.stopPropagation();const id=cb.dataset.id;if(cb.checked)SEL.add(id);else SEL.delete(id);saveSel(SEL);
+   const tr=cb.closest('tr');if(tr)tr.classList.toggle('on',cb.checked);selCnt();
+   if(F.checkedOnly&&!cb.checked)rows()};
+ });
+ selCnt()};
+if((location.hash.slice(1)||'/').startsWith('/list'))list();
