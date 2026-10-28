@@ -65,3 +65,19 @@ td.idcol code,.mob code{font-size:11px;background:#f1f3f8;padding:2px 6px;border
 tr.r.on{background:#eef2ff}
 @media(max-width:640px){table td.cb,table td.idcol{display:none!important}.bulkbar{flex-direction:column;align-items:stretch}}
 
+
+/* v1.5.3 detail carousel */
+.carbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;padding:8px 12px;background:#fff;border:1px solid #e5e8ef;border-radius:10px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+.carbar .back{margin:0;font-weight:500}
+.carpos{font-size:13px;font-weight:600;color:#4a5263;font-variant-numeric:tabular-nums;text-align:center;flex:1;min-width:140px}
+.carpos code{font-size:12px;background:#f1f3f8;padding:2px 6px;border-radius:4px;color:#4a5263}
+.carnav{display:flex;gap:8px;flex:none}
+.carn{min-width:88px;user-select:none}
+.carn:disabled{opacity:.4;cursor:not-allowed}
+@media(max-width:640px){
+ .carbar{flex-direction:column;align-items:stretch;gap:8px}
+ .carpos{order:0;text-align:left}
+ .carbar .back{order:-1}
+ .carnav{justify-content:space-between}
+ .carn{flex:1;text-align:center}
+}

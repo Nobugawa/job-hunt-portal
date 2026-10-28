@@ -239,3 +239,58 @@ rows=function(){const q=F.q.toLowerCase();let r=A.filter(a=>(!q||[a.company,a.ro
  });
  selCnt()};
 if((location.hash.slice(1)||'/').startsWith('/list'))list();
+
+/* ===== v1.5.3: Detail carousel prev/next (list order) ===== */
+const F_KEY='jhp_list_filters';
+(function restoreF(){try{const s=JSON.parse(sessionStorage.getItem(F_KEY)||'null');if(s&&typeof s==='object'){
+  ['q','st','tr','rt','from','to','sort'].forEach(k=>{if(s[k]!=null)F[k]=s[k]});
+  if(s.dir===1||s.dir===-1)F.dir=s.dir;
+  if(typeof s.checkedOnly==='boolean')F.checkedOnly=s.checkedOnly;
+}}catch(e){}})();
+const saveF=()=>{try{sessionStorage.setItem(F_KEY,JSON.stringify({q:F.q,st:F.st,tr:F.tr,rt:F.rt,from:F.from,to:F.to,sort:F.sort,dir:F.dir,checkedOnly:!!F.checkedOnly}))}catch(e){}};
+function filteredApps(){const q=(F.q||'').toLowerCase();let r=A.filter(a=>(!q||[a.company,a.role,a.notes,a.location,a.id].join(' ').toLowerCase().includes(q))&&(!F.st||a.status===F.st)&&(!F.tr||a.track===F.tr)&&(!F.rt||a.routeN===F.rt)&&(!F.from||a.applied>=F.from)&&(!F.to||(a.applied&&a.applied<=F.to))&&(!F.checkedOnly||SEL.has(a.id)));
+ r.sort((x,y)=>String(x[F.sort]||'').localeCompare(String(y[F.sort]||''),undefined,{numeric:true})*(F.dir||1));return r}
+rows=function(){saveF();const r=filteredApps();window._LIST_VIS=r;
+ $('#tb').innerHTML=r.map(a=>`<tr class="r${SEL.has(a.id)?' on':''}" data-id="${a.id}">
+ <td class="cb"><input type="checkbox" class="rowcb" data-id="${esc(a.id)}" ${SEL.has(a.id)?'checked':''} aria-label="Select ${esc(a.id)}"></td>
+ <td class="idcol"><code>${esc(a.id)}</code></td>
+ <td class="k"><div class="co">${esc(a.company)}</div><div>${esc(a.role)}</div><div class="small muted">${esc(a.location)}</div><div class="mob small"><code>${esc(a.id)}</code> · ${chip(a.status)} ${tchip(a)} · found ${fmtD(a.found)}${a.applied?' · applied '+fmtD(a.applied):''}</div></td>
+ <td>${chip(a.status)}</td><td>${tchip(a)}</td><td class="small">${fmtD(a.found)}</td><td>${fmtD(a.applied)}</td><td class="small">${pay(a)}</td><td>${a.asked?esc(a.asked):'<span class="muted">—</span>'}</td><td class="small" title="${esc(a.medical||'')}">${medS(a.medical)}</td><td class="small">${esc(a.routeN)}</td></tr>`).join('');
+ $('#cnt').textContent=`Showing ${r.length} of ${A.length}`+(SEL.size?` · ${SEL.size} checked (all filters)`:'');
+ document.querySelectorAll('tr.r').forEach(t=>{
+  t.onclick=e=>{if(e.target.closest('.rowcb')||e.target.closest('td.cb'))return;location.hash='#/app/'+t.dataset.id};
+ });
+ document.querySelectorAll('.rowcb').forEach(cb=>{
+  cb.onclick=e=>e.stopPropagation();
+  cb.onchange=e=>{e.stopPropagation();const id=cb.dataset.id;if(cb.checked)SEL.add(id);else SEL.delete(id);saveSel(SEL);
+   const tr=cb.closest('tr');if(tr)tr.classList.toggle('on',cb.checked);selCnt();
+   if(F.checkedOnly&&!cb.checked)rows()};
+ });
+ selCnt()};
+function carouselBar(id){const ids=filteredApps().map(a=>a.id);const i=ids.indexOf(id);const n=ids.length;
+ const prev=i>0?ids[i-1]:null;const next=i>=0&&i<n-1?ids[i+1]:null;
+ const pos=i>=0?`<code>${esc(id)}</code> · ${i+1} of ${n}`:`<code>${esc(id)}</code> · <span class="muted">not in current list</span>`;
+ return`<div class="carbar" role="navigation" aria-label="Application navigation">
+  <a class="back" href="#/list">← All applications</a>
+  <span class="carpos">${pos}</span>
+  <div class="carnav">
+   <button type="button" class="btn ghost carn" id="carPrev" ${prev?'':'disabled'} data-id="${prev||''}" title="Previous (←)" aria-label="Previous application">‹ Prev</button>
+   <button type="button" class="btn ghost carn" id="carNext" ${next?'':'disabled'} data-id="${next||''}" title="Next (→)" aria-label="Next application">Next ›</button>
+  </div></div>`}
+const _detail153=detail;
+detail=function(id){_detail153(id);const a=A.find(x=>x.id===id);if(!a)return;
+ const back=document.querySelector('#app > a.back');
+ if(back)back.outerHTML=carouselBar(id);
+ else{const root=$('#app');if(root)root.insertAdjacentHTML('afterbegin',carouselBar(id))}
+ const go=btn=>{const nid=btn&&btn.dataset.id;if(nid)location.hash='#/app/'+nid};
+ const p=$('#carPrev'),n=$('#carNext');
+ if(p)p.onclick=e=>{e.preventDefault();if(!p.disabled)go(p)};
+ if(n)n.onclick=e=>{e.preventDefault();if(!n.disabled)go(n)}};
+if(!window._carKeys){window._carKeys=1;addEventListener('keydown',e=>{
+ if(e.defaultPrevented||(e.key!=='ArrowLeft'&&e.key!=='ArrowRight'))return;
+ const t=e.target;if(t&&(/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)||t.isContentEditable))return;
+ const h=location.hash.slice(1)||'/';if(!h.startsWith('/app/'))return;
+ const btn=e.key==='ArrowLeft'?$('#carPrev'):$('#carNext');
+ if(btn&&!btn.disabled&&btn.dataset.id){e.preventDefault();location.hash='#/app/'+btn.dataset.id}
+})}
+if((location.hash.slice(1)||'/').startsWith('/app/'))nav();
