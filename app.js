@@ -109,9 +109,24 @@ async function openDoc(path,el){const w=window.open('','_blank');const{data,erro
 function notesCard(){return`<div class="card" id="unotes" style="margin-bottom:16px"><h2>📝 My notes</h2>
  <textarea id="unb" rows="3" placeholder="Add a note…" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #d9dde6;border-radius:8px;font:inherit"></textarea>
  <div style="margin:6px 0 10px"><button id="una" class="btn" style="border:0;cursor:pointer">Add note</button> <span id="unm" class="small muted"></span></div><div id="unl" class="small muted">Loading…</div></div>`}
+const fmtTS=t=>new Date(t).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
+/* v1.5.4: edit + delete own notes (original date kept; "edited" marker) */
 async function loadNotes(a){const l=$('#unl');if(!l)return;const{data,error}=await window.SB.from('user_notes').select('*').eq('application_id',a.id).order('created_at',{ascending:false});
  if(error){l.innerHTML='Notes aren\'t set up yet (database table missing).';$('#una').disabled=true;return}
- l.className='';l.innerHTML=data.length?data.map(n=>`<div style="border-top:1px solid #eef0f4;padding:8px 0"><div class="small muted">${new Date(n.created_at).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'})}</div><div style="white-space:pre-wrap">${esc(n.body)}</div></div>`).join(''):'<span class="muted small">No notes yet.</span>'}
+ const bs='border:0;cursor:pointer;padding:2px 8px;font-size:12px;margin-left:6px';
+ l.className='';l.innerHTML=data.length?data.map(n=>`<div class="un" data-id="${esc(n.id)}" style="border-top:1px solid #eef0f4;padding:8px 0"><div class="small muted">${fmtTS(n.created_at)}${n.updated_at?` <span class="ued" title="Edited ${esc(fmtTS(n.updated_at))}">· edited ${esc(fmtTS(n.updated_at))}</span>`:''}<span style="float:right"><button class="btn une" style="${bs}">Edit</button><button class="btn und" style="${bs};background:#fdecec;color:#b42318">Delete</button></span></div><div class="unbody" style="white-space:pre-wrap">${esc(n.body)}</div></div>`).join(''):'<span class="muted small">No notes yet.</span>';
+ l.querySelectorAll('.un').forEach(el=>{const id=el.dataset.id;const n=data.find(x=>x.id===id);
+  el.querySelector('.und').onclick=async()=>{if(!confirm('Delete this note? This can\'t be undone.'))return;
+   const{error}=await window.SB.from('user_notes').delete().eq('id',id);if(error){$('#unm').textContent='Error: '+error.message;return}$('#unm').textContent='Deleted';loadNotes(a)};
+  el.querySelector('.une').onclick=()=>{const b=el.querySelector('.unbody');
+   b.innerHTML=`<textarea rows="3" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #d9dde6;border-radius:8px;font:inherit">${esc(n.body)}</textarea><div style="margin-top:4px"><button class="btn uns" style="border:0;cursor:pointer;padding:4px 10px;font-size:12px">Save</button> <button class="btn unc" style="border:0;cursor:pointer;padding:4px 10px;font-size:12px;background:#eef0f4;color:#333">Cancel</button> <span class="small muted">Keeps the original date</span></div>`;
+   const ta=b.querySelector('textarea');ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);
+   b.querySelector('.unc').onclick=()=>loadNotes(a);
+   b.querySelector('.uns').onclick=async()=>{const v=ta.value.trim();if(!v){$('#unm').textContent='Note can\'t be empty (use Delete instead)';return}
+    if(v===n.body){loadNotes(a);return}b.querySelector('.uns').disabled=true;
+    const{data:u,error}=await window.SB.from('user_notes').update({body:v,updated_at:new Date().toISOString()}).eq('id',id).select();
+    if(error||!u||!u.length){$('#unm').textContent='Error: '+(error?error.message:'not saved (permission)');b.querySelector('.uns').disabled=false;return}
+    $('#unm').textContent='Updated';loadNotes(a)}}})}
 const _detail11=detail;
 detail=function(id){_detail11(id);const a=A.find(x=>x.id===id);if(!a)return;
  const kv=document.querySelector('.dgrid .card dl.kv');
