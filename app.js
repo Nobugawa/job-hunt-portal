@@ -28,7 +28,7 @@ function dash(){const ap=A.filter(a=>a.status==='Applied'),wk=addD(TODAY,-7);
  ${pr.length?`<li><b>${pr.length} packages ready, not yet submitted</b><div class="small muted">${pr.slice(0,4).map(a=>esc(a.company)).join(', ')}${pr.length>4?'…':''}</div></li>`:''}</ul></div></div>
  <div class="grid2"><div class="card"><h2>Applications by track</h2>${tr}<div class="small muted">* track inferred from role & pay (no track column in tracker yet)</div></div>
  <div class="card"><h2>📅 Follow-ups due</h2><ul class="list">${due.map(({a,d})=>`<li><a href="#/app/${a.id}"><b>${esc(a.company)}</b></a>, ${esc(a.role)}<div class="small ${d<=TODAY?'':'muted'}" style="${d<=TODAY?'color:#b42318':''}">${d<=TODAY?'Overdue · ':''}${fmtD(d)}${a.followup?'':' (auto: applied + 7d)'}</div></li>`).join('')}</ul></div></div>`}
-let F={q:'',st:'',tr:'',rt:'',from:'',to:'',sort:'applied',dir:-1};
+let F={q:'',st:'',tr:'',rt:'',from:'',to:'',sort:'smart',dir:1};
 function list(){const opts=(arr,v)=>arr.map(x=>`<option ${x===v?'selected':''}>${x}</option>`).join('');
  $('#app').innerHTML=`<h1>Applications</h1><p class="sub">${A.length} roles tracked</p><div class="card"><div class="filters">
  <input type="search" id="q" placeholder="Search company, role, notes…" value="${esc(F.q)}">
@@ -260,10 +260,12 @@ const F_KEY='jhp_list_filters';
 (function restoreF(){try{const s=JSON.parse(sessionStorage.getItem(F_KEY)||'null');if(s&&typeof s==='object'){
   ['q','st','tr','rt','from','to','sort'].forEach(k=>{if(s[k]!=null)F[k]=s[k]});
   if(s.dir===1||s.dir===-1)F.dir=s.dir;
+  if(s.sort==='applied'&&s.dir===-1&&!s.v155){F.sort='smart';F.dir=1}
   if(typeof s.checkedOnly==='boolean')F.checkedOnly=s.checkedOnly;
 }}catch(e){}})();
-const saveF=()=>{try{sessionStorage.setItem(F_KEY,JSON.stringify({q:F.q,st:F.st,tr:F.tr,rt:F.rt,from:F.from,to:F.to,sort:F.sort,dir:F.dir,checkedOnly:!!F.checkedOnly}))}catch(e){}};
+const saveF=()=>{try{sessionStorage.setItem(F_KEY,JSON.stringify({q:F.q,st:F.st,tr:F.tr,rt:F.rt,from:F.from,to:F.to,sort:F.sort,dir:F.dir,checkedOnly:!!F.checkedOnly,v155:1}))}catch(e){}};
 function filteredApps(){const q=(F.q||'').toLowerCase();let r=A.filter(a=>(!q||[a.company,a.role,a.notes,a.location,a.id].join(' ').toLowerCase().includes(q))&&(!F.st||a.status===F.st)&&(!F.tr||a.track===F.tr)&&(!F.rt||a.routeN===F.rt)&&(!F.from||a.applied>=F.from)&&(!F.to||(a.applied&&a.applied<=F.to))&&(!F.checkedOnly||SEL.has(a.id)));
+ if(F.sort==='smart'){const nd=a=>a.found>a.posted?a.found:(a.posted||a.found||'');r.sort((x,y)=>{const xa=x.applied?1:0,ya=y.applied?1:0;if(xa!==ya)return xa-ya;return xa?String(y.applied).localeCompare(String(x.applied)):nd(y).localeCompare(nd(x))});return r}/* v1.5.5 default: not-applied first (newest found/posted), then applied newest */
  r.sort((x,y)=>String(x[F.sort]||'').localeCompare(String(y[F.sort]||''),undefined,{numeric:true})*(F.dir||1));return r}
 rows=function(){saveF();const r=filteredApps();window._LIST_VIS=r;
  $('#tb').innerHTML=r.map(a=>`<tr class="r${SEL.has(a.id)?' on':''}" data-id="${a.id}">
