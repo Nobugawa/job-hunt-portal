@@ -389,7 +389,7 @@ function mrCard(a){const r=(window.RATINGS||{})[a.id]||{};const c=mrCalc(r);cons
  <div class="mrgrid">${MR_F.map(row).join('')}</div>
  <div class="mrov"><div><span class="mrl"><b>Overall</b></span> <span class="mrbig">${c.overall!=null?'★ '+mrFmt(c.overall):'—'}</span>
   <span class="chip ${c.src==='manual'?'s-Interview':'s-Found'}" id="mrSrc">${c.src==='manual'?'Set by you':c.src==='avg'?`Average of ${c.n}`:'Not rated'}</span>${c.src==='manual'&&c.avg!=null?` <span class="small muted">(average would be ${mrFmt(c.avg)})</span>`:''}</div>
-  <div class="mrovin"><input id="mrOvIn" type="number" min="1" max="5" step="0.1" placeholder="Your own Overall (1–5)" value="${c.man!=null?mrFmt(c.man):''}">
+  <div class="mrovin"><input id="mrOvIn" type="number" min="1" max="5" step="0.1" placeholder="Your Overall, 1–5" title="Type your own Overall (1–5, one decimal). Leave blank to use the average." value="${c.man!=null?mrFmt(c.man):''}">
   <button type="button" class="btn" id="mrOvSet" style="border:0;cursor:pointer">Set Overall</button>
   <button type="button" class="btn ghost" id="mrOvClr" ${c.man==null?'disabled':''} title="Remove your own Overall and go back to the average">Use average</button></div></div>
  <div class="small muted">Click a number to rate; click it again to clear. Leave Overall blank to use the average of the ones you rate. <span id="mrMsg"></span></div></div>`}
