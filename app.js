@@ -13,16 +13,49 @@ const payTxt=(mn,mx)=>mn?(mn===mx||!mx?`$${Math.round(mn/1000)}k`:`$${Math.round
 const payPosted=a=>payTxt(a.payMin,a.payMax)||(a.payText&&!/not posted/i.test(a.payText)?a.payText:'');
 const payEst=a=>payTxt(a.estMin,a.estMax)?'est. '+payTxt(a.estMin,a.estMax):'';
 const pay=a=>payPosted(a)?esc(payPosted(a)):payEst(a)?`<span class="muted">${esc(payEst(a))}</span>`:'—';
-function dash(){const ap=A.filter(a=>a.status==='Applied'),wk=addD(TODAY,-7);
- const k=[['Total applied',ap.length,'#2f5bea'],['Applied this week',ap.filter(a=>a.applied>wk).length,'#7a5cff'],['Interviews / replies',A.filter(a=>a.status2).length,'#12b76a'],['Rejections',A.filter(a=>a.status==='Rejected').length,'#f04438'],['Packages ready',A.filter(a=>a.status==='Package ready').length,'#f79009'],['Skipped',A.filter(a=>a.status==='Skipped').length,'#98a2b3']];
- const order=[['Found','#98a2b3'],['Package ready','#f79009'],['Applied','#2f5bea'],['Rejected','#f04438'],['Skipped','#c0c5d0']],mx=Math.max(...order.map(o=>A.filter(a=>a.status===o[0]).length));
- const bars=(arr)=>arr.map(([l,n,c])=>`<div class="bar"><span class="lb">${l}</span><div class="tr"><div class="fi" style="width:${Math.max(4,n/mx*100)}%;background:${c}">${n}</div></div></div>`).join('');
- const tr=['A','B','C'].map(t=>{const x=A.filter(a=>a.track===t);return`<div class="bar"><span class="lb">${tchip({track:t})}</span><div class="tr"><div class="fi" style="width:${Math.max(4,x.length/A.length*100)}%;background:${{A:'#7a5cff',B:'#14a38b',C:'#e07b1a'}[t]}">${x.length}</div></div><span class="small muted" style="width:90px">${x.filter(a=>a.status==='Applied').length} applied</span></div><div class="small muted" style="margin:-4px 0 6px 130px">${TR[t]}</div>`}).join('');
- const due=ap.map(a=>({a,d:fu(a)})).sort((x,y)=>x.d<y.d?-1:1).slice(0,7);
+const pct=(n,d)=>d?Math.round(n/d*100)+'%':'—';
+const greet=()=>{const h=new Date().getHours();return h<12?'Good morning':h<17?'Good afternoon':'Good evening'};
+/* Pipeline bucket: Interview is remapped to Applied in the loader, so use status2.
+   Skipped variants and Closed/Offer must be included so bars add up to total roles. */
+const pipeStatus=a=>{
+  if(a.status2==='Interview'||a.status==='Interview'||a.statusRaw==='Interview')return'Interview';
+  if(/^(Skipped)\b/i.test(a.status||'')||/^(Skipped)\b/i.test(a.statusRaw||''))return'Skipped';
+  if(a.status==='Closed'||a.statusRaw==='Closed')return'Closed';
+  if(a.status==='Offer'||a.statusRaw==='Offer')return'Offer';
+  return a.status||'Found';
+};
+/* Total applied = every role that was ever submitted, not only current status Applied. */
+const everApplied=a=>!!(a.applied||['Applied','Interview','Rejected','Offer'].includes(pipeStatus(a)));
+function dash(){
+ const total=A.length,ap=A.filter(everApplied),wk=addD(TODAY,-7);
+ const week=ap.filter(a=>a.applied>wk);
+ const replies=A.filter(a=>a.status2);
+ const rejections=A.filter(a=>pipeStatus(a)==='Rejected');
  const pr=A.filter(a=>a.status==='Package ready');
- $('#app').innerHTML=`<h1>Good evening, Philos</h1><p class="sub">${ap.length} applications out · ${pr.length} packages ready to send</p>
- <div class="kpis">${k.map(([l,n,c])=>`<div class="card kpi" style="--c:${c}"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('')}</div>
- <div class="grid2"><div class="card"><h2>Pipeline by status</h2>${bars(order.map(([l,c])=>[l,A.filter(a=>a.status===l).length,c]))}</div>
+ const skipped=A.filter(a=>pipeStatus(a)==='Skipped');
+ const k=[
+  ['Total roles',total,'#1d2433',''],
+  ['Total applied',ap.length,'#2f5bea',pct(ap.length,total)+' of roles'],
+  ['Applied this week',week.length,'#7a5cff',pct(week.length,ap.length)+' of applied'],
+  ['Interviews / replies',replies.length,'#12b76a',pct(replies.length,ap.length)+' response rate'],
+  ['Rejections',rejections.length,'#f04438',pct(rejections.length,ap.length)+' rejection rate'],
+  ['Packages ready',pr.length,'#f79009',pct(pr.length,total)+' of roles'],
+  ['Skipped',skipped.length,'#98a2b3',pct(skipped.length,total)+' of roles']
+ ];
+ const order=[['Found','#98a2b3'],['Package ready','#f79009'],['Applied','#2f5bea'],['Interview','#12b76a'],['Rejected','#f04438'],['Offer','#067647'],['Closed','#667085'],['Skipped','#c0c5d0']];
+ const counts={};A.forEach(a=>{const s=pipeStatus(a);counts[s]=(counts[s]||0)+1});
+ const shown=order.filter(([l])=>counts[l]);
+ Object.keys(counts).filter(s=>!order.some(([l])=>l===s)&&counts[s]).forEach(s=>shown.push([s,'#98a2b3']));
+ const mx=Math.max(1,...shown.map(([l])=>counts[l]));
+ const bars=shown.map(([l,c])=>{const n=counts[l];return`<div class="bar"><span class="lb">${l}</span><div class="tr"><div class="fi" style="width:${Math.max(4,n/mx*100)}%;background:${c}">${n}</div></div><span class="small muted pctlb">${pct(n,total)}</span></div>`}).join('');
+ const tr=['A','B','C'].map(t=>{const x=A.filter(a=>a.track===t);return`<div class="bar"><span class="lb">${tchip({track:t})}</span><div class="tr"><div class="fi" style="width:${Math.max(4,x.length/A.length*100)}%;background:${{A:'#7a5cff',B:'#14a38b',C:'#e07b1a'}[t]}">${x.length}</div></div><span class="small muted" style="width:90px">${x.filter(everApplied).length} applied</span></div><div class="small muted" style="margin:-4px 0 6px 130px">${TR[t]}</div>`}).join('');
+ const open=A.filter(a=>a.status==='Applied'||a.status==='Interview'||a.status2==='Interview');
+ const due=open.map(a=>({a,d:fu(a)})).filter(x=>x.d).sort((x,y)=>x.d<y.d?-1:1).slice(0,7);
+ const pipeSum=shown.reduce((s,[l])=>s+(counts[l]||0),0);
+ $('#app').innerHTML=`<h1>${greet()}, Philos</h1><p class="sub">${ap.length} applications out · ${pr.length} packages ready to send</p>
+ <div class="kpis">${k.map(([l,n,c,p])=>`<div class="card kpi" style="--c:${c}"><div class="n">${n}</div><div class="l">${l}</div>${p?`<div class="pct">${p}</div>`:''}</div>`).join('')}</div>
+ <p class="small muted kpi-note">Total applied counts every role that was submitted — Applied, Interview, Rejected, and Closed after applying.</p>
+ <div class="grid2"><div class="card"><h2>Pipeline by status</h2>${bars}<div class="small muted" style="margin-top:8px">${pipeSum} of ${total} roles</div></div>
  <div class="card"><h2>⚡ Action needed</h2><ul class="list">
  ${(window.ACTION_ITEMS||[]).map(i=>`<li><b>${esc(i.title)}</b><div class="small muted">${esc(i.detail||'')}${i.due_date?' · due '+fmtD(i.due_date):''}</div></li>`).join('')}
  ${pr.length?`<li><b>${pr.length} packages ready, not yet submitted</b><div class="small muted">${pr.slice(0,4).map(a=>esc(a.company)).join(', ')}${pr.length>4?'…':''}</div></li>`:''}</ul></div></div>

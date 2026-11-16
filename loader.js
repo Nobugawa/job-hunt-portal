@@ -28,7 +28,7 @@ async function load(){
  window.INTERACTIONS=ints.map(i=>({contact:i.contact_id,date:i.date,channel:i.channel,direction:i.direction,status:i.status,summary:i.summary,next:i.next_step}));
  window.SB=sb;window.ACTION_ITEMS=items.filter(i=>i.status==='open');
  window.DATA_AS_OF=(meta.find(m=>m.key==='data_as_of')||{}).value||new Date().toISOString().slice(0,10);
- document.getElementById('nav').style.display='';const s=document.createElement('script');s.src='app.js';document.body.appendChild(s)}
+ document.getElementById('nav').style.display='';const s=document.createElement('script');s.src='app.js?v='+encodeURIComponent(C.VERSION);document.body.appendChild(s)}
 document.getElementById('logout').onclick=async ev=>{ev.preventDefault();await sb.auth.signOut();location.hash='';location.reload()};
 (async()=>{if(C.SUPABASE_PUBLISHABLE_KEY.startsWith('REPLACE')){document.getElementById('app').innerHTML='<div class="card"><h1>Setup needed</h1><p>Add the Supabase publishable key to config.js.</p></div>';return}
  const {data:{session}}=await sb.auth.getSession();if(!session)return login();
