@@ -143,9 +143,14 @@ function notesCard(){return`<div class="card" id="unotes" style="margin-bottom:1
  <textarea id="unb" rows="3" placeholder="Add a note…" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #d9dde6;border-radius:8px;font:inherit"></textarea>
  <div style="margin:6px 0 10px"><button id="una" class="btn" style="border:0;cursor:pointer">Add note</button> <span id="unm" class="small muted"></span></div><div id="unl" class="small muted">Loading…</div></div>`}
 const fmtTS=t=>new Date(t).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
+/* v1.5.8: say what actually went wrong (was: "table missing" for every error, incl. an expired sign-in) */
+function notesErrHTML(error){const c=String(error&&error.code||''),st=Number(error&&error.status||0),m=String(error&&error.message||'');
+ if(c==='42P01'||c==='PGRST205')return'Notes aren\'t set up yet (database table missing).';
+ if(st===401||st===403||c==='42501'||/^PGRST30/.test(c)||/jwt|token|expired/i.test(m))return'Your sign-in has expired. <a href="#" id="unrelog">Sign in again</a> to see your notes.';
+ return'Couldn\'t load notes: '+esc(m||'unknown error')+'. Try reloading the page.'}
 /* v1.5.4: edit + delete own notes (original date kept; "edited" marker) */
 async function loadNotes(a){const l=$('#unl');if(!l)return;const{data,error}=await window.SB.from('user_notes').select('*').eq('application_id',a.id).order('created_at',{ascending:false});
- if(error){l.innerHTML='Notes aren\'t set up yet (database table missing).';$('#una').disabled=true;return}
+ if(error){l.innerHTML=notesErrHTML(error);$('#una').disabled=true;const r=$('#unrelog');if(r)r.onclick=async e=>{e.preventDefault();await window.SB.auth.signOut({scope:'local'});location.hash='';location.reload()};return}
  const bs='border:0;cursor:pointer;padding:2px 8px;font-size:12px;margin-left:6px';
  l.className='';l.innerHTML=data.length?data.map(n=>`<div class="un" data-id="${esc(n.id)}" style="border-top:1px solid #eef0f4;padding:8px 0"><div class="small muted">${fmtTS(n.created_at)}${n.updated_at?` <span class="ued" title="Edited ${esc(fmtTS(n.updated_at))}">· edited ${esc(fmtTS(n.updated_at))}</span>`:''}<span style="float:right"><button class="btn une" style="${bs}">Edit</button><button class="btn und" style="${bs};background:#fdecec;color:#b42318">Delete</button></span></div><div class="unbody" style="white-space:pre-wrap">${esc(n.body)}</div></div>`).join(''):'<span class="muted small">No notes yet.</span>';
  l.querySelectorAll('.un').forEach(el=>{const id=el.dataset.id;const n=data.find(x=>x.id===id);
