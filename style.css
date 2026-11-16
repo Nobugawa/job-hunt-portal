@@ -85,3 +85,21 @@ tr.r.on{background:#eef2ff}
  .carnav{justify-content:space-between}
  .carn{flex:1;text-align:center}
 }
+/* v1.5.7 My rating + narrower wrapping Status column */
+th.stcol,td.stcol{width:84px;max-width:84px;white-space:normal}
+td.stcol .chip{white-space:normal;line-height:1.25;text-align:center;padding:3px 8px}
+th.mrcol,td.mrcol{white-space:nowrap;width:86px}
+.mrb{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;background:#f1f3f8;color:#4a5263}
+.mrb.mr5{background:#dcfae6;color:#067647}.mrb.mr4{background:#e6f4ea;color:#12804a}.mrb.mr3{background:#fef6e1;color:#9a6700}.mrb.mr2,.mrb.mr1{background:#fdecec;color:#b42318}
+.mrsrc{display:block;font-size:10px;color:#98a2b3;text-transform:uppercase;letter-spacing:.04em;margin-top:2px;padding-left:8px}
+.mrgrid{display:grid;gap:6px;margin:6px 0 12px}
+.mrrow{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:4px 6px;border-radius:8px}
+.mrrow.hl{background:#f4f0ff}
+.mrl{min-width:110px}
+.mrbtns{display:flex;gap:4px}
+.mrn{width:32px;height:30px;border:1px solid #d9dde6;border-radius:7px;background:#fff;cursor:pointer;font:inherit;font-weight:600;color:#4a5263}
+.mrn.fill{background:#eef2ff;border-color:#b7c5fb;color:#2f5bea}.mrn.on{background:#2f5bea;border-color:#2f5bea;color:#fff}
+.mrov{border-top:1px solid #eef0f4;padding-top:10px;margin-bottom:8px;display:flex;flex-direction:column;gap:8px}
+.mrbig{font-size:20px;font-weight:700;margin:0 6px}
+.mrovin{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.mrovin input{width:170px;padding:7px 9px;border:1px solid #d9dde6;border-radius:8px;font:inherit}
+a.chip.mrhd{text-decoration:none;color:inherit}
