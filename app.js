@@ -344,3 +344,75 @@ if(!window._carKeys){window._carKeys=1;addEventListener('keydown',e=>{
  if(btn&&!btn.disabled&&btn.dataset.id){e.preventDefault();location.hash='#/app/'+btn.dataset.id}
 })}
 if((location.hash.slice(1)||'/').startsWith('/app/'))nav();
+
+/* ===== v1.5.7: My rating (Philos's own 1–5 ratings; separate from computed Fit) ===== */
+const MR_F=[['enjoyment','Enjoyment'],['culture','Culture'],['people','People'],['growth','Future growth'],['mission','Mission']];
+const MR_KEY='jhp_list_mr';
+F.mr=(()=>{try{return sessionStorage.getItem(MR_KEY)||''}catch(e){return''}})();
+const mrCalc=r=>{r=r||{};const v=MR_F.map(([k])=>r[k]).filter(x=>x!=null&&x!=='');
+ const avg=v.length?Math.round(v.reduce((s,x)=>s+Number(x),0)/v.length*10)/10:null;
+ const man=r.overall_manual!=null&&r.overall_manual!==''?Number(r.overall_manual):null;
+ return{avg,n:v.length,man,overall:man!=null?man:avg,src:man!=null?'manual':(avg!=null?'avg':'')}};
+const mrApply=a=>{const c=mrCalc((window.RATINGS||{})[a.id]);a.myOverall=c.overall;a.myOverallSrc=c.src;a.myN=c.n;return c};
+A.forEach(mrApply);
+const mrFmt=x=>x==null?'':Number(x).toFixed(1);
+const isChisholm=a=>/chisholm|track\s*f\b/i.test([a.notes,a.fitNotes,a.company].join(' '));
+function mrBadge(a){if(a.myOverall==null)return'<span class="muted">—</span>';
+ const r=(window.RATINGS||{})[a.id]||{};const tip=MR_F.map(([k,l])=>`${l}: ${r[k]??'–'}`).join(' · ')+(a.myOverallSrc==='manual'?' · Overall set by you':` · Overall = average of ${a.myN}`);
+ return`<span class="mrb mr${Math.round(a.myOverall)}" title="${esc(tip)}">★ ${mrFmt(a.myOverall)}</span><span class="mrsrc">${a.myOverallSrc==='manual'?'set':'avg'}</span>`}
+const _fa157=filteredApps;
+filteredApps=function(){let r=_fa157();const m=F.mr||'';
+ if(m==='unrated')r=r.filter(a=>a.myOverall==null);else if(m==='rated')r=r.filter(a=>a.myOverall!=null);else if(m)r=r.filter(a=>a.myOverall!=null&&a.myOverall>=Number(m));
+ if(F.sort==='myOverall')r.sort((x,y)=>{const a=x.myOverall,b=y.myOverall;if(a==null&&b==null)return 0;if(a==null)return 1;if(b==null)return-1;return(a-b)*(F.dir||1)});/* unrated always last */
+ return r};
+const _list157=list,_rows157=rows;
+list=function(){_list157();
+ const st=document.querySelector('th[data-k="status"]');if(st){st.classList.add('stcol');
+  st.insertAdjacentHTML('afterend',`<th data-k="myOverall" class="mrcol" title="Your own rating (Overall). Click to sort; unrated roles stay at the bottom.">My rating${F.sort==='myOverall'?(F.dir>0?' ▲':' ▼'):''}</th>`);
+  const th=document.querySelector('th[data-k="myOverall"]');th.onclick=()=>{F.dir=F.sort==='myOverall'?-F.dir:-1;F.sort='myOverall';list()}}
+ const fl=document.querySelector('.filters');const sel=$('#mr');
+ if(fl&&!sel){const o=[['','Any my rating'],['rated','Rated'],['unrated','Unrated'],['4.5','My rating ≥ 4.5'],['4','My rating ≥ 4'],['3.5','My rating ≥ 3.5'],['3','My rating ≥ 3'],['2','My rating ≥ 2']];
+  const chk=fl.querySelector('.chkf');const h=`<select id="mr" title="Filter by your Overall rating">${o.map(([v,l])=>`<option value="${v}" ${F.mr===v?'selected':''}>${l}</option>`).join('')}</select>`;
+  if(chk)chk.insertAdjacentHTML('beforebegin',h);else fl.insertAdjacentHTML('beforeend',h);
+  $('#mr').onchange=e=>{F.mr=e.target.value;try{sessionStorage.setItem(MR_KEY,F.mr)}catch(_){}rows()}}
+ rows()};
+rows=function(){_rows157();
+ const vis=window._LIST_VIS||[];
+ document.querySelectorAll('#tb tr.r').forEach(tr=>{const a=A.find(x=>x.id===tr.dataset.id);if(!a)return;const tds=tr.children;
+  if(tds[3]){tds[3].classList.add('stcol');tds[3].insertAdjacentHTML('afterend',`<td class="mrcol">${mrBadge(a)}</td>`)}
+  const mob=tr.querySelector('.mob');if(mob&&a.myOverall!=null)mob.insertAdjacentHTML('beforeend',` · ${mrBadge(a)}`)});
+ if(F.mr){const c=$('#cnt');if(c&&!/rating/.test(c.textContent))c.textContent+=` · my rating filter: ${$('#mr')?$('#mr').selectedOptions[0].textContent:F.mr}`}};
+function mrCard(a){const r=(window.RATINGS||{})[a.id]||{};const c=mrCalc(r);const ch=isChisholm(a);
+ const row=([k,l])=>`<div class="mrrow${k==='mission'&&ch?' hl':''}" data-f="${k}"><span class="mrl">${l}${k==='mission'?`<span class="small muted"> ${ch?'· key for this Chisholm / Track F role':'· esp. Chisholm roles'}</span>`:''}</span><span class="mrbtns">${[1,2,3,4,5].map(n=>`<button type="button" class="mrn${r[k]===n?' on':''}${r[k]!=null&&n<=r[k]?' fill':''}" data-v="${n}" title="${r[k]===n?'Click again to clear':l+': '+n}">${n}</button>`).join('')}</span></div>`;
+ return`<div class="card" id="myrate" style="margin-bottom:16px"><h2>⭐ My rating <span class="small muted" style="font-weight:400">· how much you like this role (separate from Fit)</span></h2>
+ ${window.RATINGS_OK===false?'<p class="small" style="color:#b42318">Ratings table not set up yet (run alter_v157_role_ratings.sql).</p>':''}
+ <div class="mrgrid">${MR_F.map(row).join('')}</div>
+ <div class="mrov"><div><span class="mrl"><b>Overall</b></span> <span class="mrbig">${c.overall!=null?'★ '+mrFmt(c.overall):'—'}</span>
+  <span class="chip ${c.src==='manual'?'s-Interview':'s-Found'}" id="mrSrc">${c.src==='manual'?'Set by you':c.src==='avg'?`Average of ${c.n}`:'Not rated'}</span>${c.src==='manual'&&c.avg!=null?` <span class="small muted">(average would be ${mrFmt(c.avg)})</span>`:''}</div>
+  <div class="mrovin"><input id="mrOvIn" type="number" min="1" max="5" step="0.1" placeholder="Your Overall, 1–5" title="Type your own Overall (1–5, one decimal). Leave blank to use the average." value="${c.man!=null?mrFmt(c.man):''}">
+  <button type="button" class="btn" id="mrOvSet" style="border:0;cursor:pointer">Set Overall</button>
+  <button type="button" class="btn ghost" id="mrOvClr" ${c.man==null?'disabled':''} title="Remove your own Overall and go back to the average">Use average</button></div></div>
+ <div class="small muted">Click a number to rate; click it again to clear. Leave Overall blank to use the average of the ones you rate. <span id="mrMsg"></span></div></div>`}
+async function mrSave(a,patch){const cur=Object.assign({},(window.RATINGS||{})[a.id]||{});const r=Object.assign(cur,patch);
+ const row={application_id:a.id};MR_F.forEach(([k])=>row[k]=r[k]??null);row.overall_manual=r.overall_manual??null;
+ const empty=MR_F.every(([k])=>row[k]==null)&&row.overall_manual==null;
+ const m=$('#mrMsg');if(m){m.style.color='';m.textContent='Saving…'}
+ let res;if(empty)res=await window.SB.from('role_ratings').delete().eq('application_id',a.id);
+ else res=await window.SB.from('role_ratings').upsert(row,{onConflict:'application_id'}).select();
+ if(res.error||(!empty&&(!res.data||!res.data.length))){const mm=$('#mrMsg');if(mm){mm.style.color='#b42318';mm.textContent='Error: '+(res.error?res.error.message:'not saved (permission)')}return}
+ window.RATINGS=window.RATINGS||{};if(empty)delete window.RATINGS[a.id];else window.RATINGS[a.id]=res.data[0];
+ mrApply(a);mrMount(a);const mm=$('#mrMsg');if(mm){mm.style.color='#067647';mm.textContent='Saved ✓'}}
+function mrHeader(a){const h=document.querySelector('#app .card .chip.mrhd');const t=a.myOverall!=null?`My rating ★ ${mrFmt(a.myOverall)}${a.myOverallSrc==='manual'?'':' (avg)'}`:'My rating —';
+ if(h){h.textContent=t;return}const fit=[...document.querySelectorAll('#app .card .chip')].find(x=>/^Fit /.test(x.textContent));
+ if(fit)fit.insertAdjacentHTML('afterend',` <a href="#myrate" class="chip mrhd s-Found" onclick="event.preventDefault();document.getElementById('myrate').scrollIntoView({behavior:'smooth'})">${esc(t)}</a>`)}
+function mrMount(a){const old=$('#myrate');const html=mrCard(a);
+ if(old)old.outerHTML=html;else{const col=document.querySelector('.dgrid > div:first-child');if(!col)return;col.insertAdjacentHTML('afterbegin',html)}
+ mrHeader(a);const card=$('#myrate');
+ card.querySelectorAll('.mrrow').forEach(rw=>{const k=rw.dataset.f;rw.querySelectorAll('.mrn').forEach(b=>b.onclick=()=>{const v=Number(b.dataset.v);const cur=((window.RATINGS||{})[a.id]||{})[k];mrSave(a,{[k]:cur===v?null:v})})});
+ const inp=$('#mrOvIn');const set=()=>{const s=inp.value.trim();if(!s){const m=$('#mrMsg');if(m){m.style.color='#b42318';m.textContent='Type a number from 1 to 5, or use "Use average"'}return}
+  const v=Math.round(Number(s)*10)/10;if(!(v>=1&&v<=5)){const m=$('#mrMsg');if(m){m.style.color='#b42318';m.textContent='Overall must be between 1 and 5'}return}mrSave(a,{overall_manual:v})};
+ $('#mrOvSet').onclick=set;inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();set()}};
+ $('#mrOvClr').onclick=()=>mrSave(a,{overall_manual:null})}
+const _detail157=detail;
+detail=function(id){_detail157(id);const a=A.find(x=>x.id===id);if(!a)return;mrApply(a);mrMount(a)};
+nav();

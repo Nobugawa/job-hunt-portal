@@ -26,6 +26,7 @@ async function load(){
  window.COMPANIES=comps.map(c=>({id:c.id,name:c.name,status:c.research_status,match:c.match_terms||[],employees:c.employees,revenue:c.revenue,founded:c.founded,hq:c.hq,ownership:c.ownership,history:c.history,news:c.news||[],newsNote:c.news_note,competitors:c.competitors||[],competitorsNote:c.competitors_note}));
  window.CONTACTS=cons.map(c=>({id:c.id,company:c.company,companyId:c.company_id,name:c.name,title:c.title,relationship:c.relationship,linkedin:c.linkedin,email:c.email,phone:c.phone,bio:c.bio,sources:c.sources||[]}));
  window.INTERACTIONS=ints.map(i=>({contact:i.contact_id,date:i.date,channel:i.channel,direction:i.direction,status:i.status,summary:i.summary,next:i.next_step}));
+ const rrT=await sb.from('role_ratings').select('*').limit(5000);window.RATINGS_OK=!rrT.error;window.RATINGS={};(rrT.data||[]).forEach(r=>window.RATINGS[r.application_id]=r);/* v1.5.7 My rating */
  window.SB=sb;window.ACTION_ITEMS=items.filter(i=>i.status==='open');
  window.DATA_AS_OF=(meta.find(m=>m.key==='data_as_of')||{}).value||new Date().toISOString().slice(0,10);
  document.getElementById('nav').style.display='';const s=document.createElement('script');s.src='app.js?v='+encodeURIComponent(C.VERSION);document.body.appendChild(s)}
