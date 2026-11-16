@@ -30,7 +30,13 @@ async function load(){
  window.SB=sb;window.ACTION_ITEMS=items.filter(i=>i.status==='open');
  window.DATA_AS_OF=(meta.find(m=>m.key==='data_as_of')||{}).value||new Date().toISOString().slice(0,10);
  document.getElementById('nav').style.display='';const s=document.createElement('script');s.src='app.js?v='+encodeURIComponent(C.VERSION);document.body.appendChild(s)}
-document.getElementById('logout').onclick=async ev=>{ev.preventDefault();await sb.auth.signOut();location.hash='';location.reload()};
+/* v1.5.8: sign out THIS browser only (supabase-js default is scope:'global', which ended every other session) */
+let _leaving=false;
+document.getElementById('logout').onclick=async ev=>{ev.preventDefault();_leaving=true;await sb.auth.signOut({scope:'local'});location.hash='';location.reload()};
+/* v1.5.8: if the session dies (expired/revoked refresh token), go to the login screen instead of a half-working page.
+   Only after a session was active on this page, and never mid magic-link redirect (access_token in hash). */
+let _hadSession=false;
+sb.auth.onAuthStateChange(ev=>{if(ev==='SIGNED_OUT'&&_hadSession&&!_leaving&&!location.hash.includes('access_token')){_leaving=true;location.hash='';location.reload()}});
 (async()=>{if(C.SUPABASE_PUBLISHABLE_KEY.startsWith('REPLACE')){document.getElementById('app').innerHTML='<div class="card"><h1>Setup needed</h1><p>Add the Supabase publishable key to config.js.</p></div>';return}
- const {data:{session}}=await sb.auth.getSession();if(!session)return login();
+ const {data:{session}}=await sb.auth.getSession();if(!session)return login();_hadSession=true;
  try{await load()}catch(err){document.getElementById('app').innerHTML=`<div class="card"><h1>Couldn't load data</h1><p class="muted">${e(err.message)}</p></div>`}})();
