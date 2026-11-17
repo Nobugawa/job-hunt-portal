@@ -103,3 +103,16 @@ th.mrcol,td.mrcol{white-space:nowrap;width:86px}
 .mrbig{font-size:20px;font-weight:700;margin:0 6px}
 .mrovin{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.mrovin input{width:190px;padding:7px 9px;border:1px solid #d9dde6;border-radius:8px;font:inherit}
 a.chip.mrhd{text-decoration:none;color:inherit}
+
+/* v1.5.9 Questions for Philos */
+.aqb{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:#fff4e5;color:#b54708;border:1px solid #fedf89;font-size:11px;font-weight:600;white-space:nowrap;vertical-align:middle}
+.chip.aqhd{display:inline-block;width:auto;background:#fff4e5;color:#b54708;border:1px solid #fedf89;text-decoration:none;cursor:pointer}
+.aqcard{border-left:4px solid #f79009}
+.aqq{padding:12px 0;border-top:1px solid #eaecf0}.aqq:first-of-type{border-top:0}
+.aqq.ans{opacity:.85}.aqhd{display:flex;gap:8px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+.aqdet{white-space:pre-wrap;margin:4px 0 8px}
+.aqopts{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0}
+.aqopt{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid #d0d5dd;border-radius:8px;cursor:pointer;font-size:14px;background:#fff}
+.aqopt.on{border-color:#2f5bea;background:#eef3ff;color:#1d3fbf;font-weight:600}
+.aqnote,.aqtext{width:100%;box-sizing:border-box;padding:8px;border:1px solid #d9dde6;border-radius:8px;font:inherit;margin:4px 0}
+.aqbtns{margin-top:6px}

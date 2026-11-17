@@ -10,7 +10,9 @@ const addD=(d,n)=>{const x=new Date(d+'T12:00');x.setDate(x.getDate()+n);return 
 const fu=a=>a.followup||(a.status==='Applied'&&a.applied?addD(a.applied,7):'');
 /* v1.2.1: single pay helper used by list AND detail so they cannot disagree */
 const payTxt=(mn,mx)=>mn?(mn===mx||!mx?`$${Math.round(mn/1000)}k`:`$${Math.round(mn/1000)}k–$${Math.round(mx/1000)}k`):'';
-const payPosted=a=>payTxt(a.payMin,a.payMax)||(a.payText&&!/not posted/i.test(a.payText)?a.payText:'');
+/* v1.5.9: open-ended posted pay ("$170,000+") keeps its "+" — a floor is not the same as a flat number */
+const payOpen=a=>/\$\s?[\d,.]+\s*[kK]?\+|\band up\b|\bor more\b|\bstarting at\b/i.test(a.payText||'');
+const payPosted=a=>{const t=payTxt(a.payMin,a.payMax);if(t)return t+(payOpen(a)&&(!a.payMax||a.payMin===a.payMax)?'+':'');return a.payText&&!/not posted/i.test(a.payText)?a.payText:''};
 const payEst=a=>payTxt(a.estMin,a.estMax)?'est. '+payTxt(a.estMin,a.estMax):'';
 const pay=a=>payPosted(a)?esc(payPosted(a)):payEst(a)?`<span class="muted">${esc(payEst(a))}</span>`:'—';
 const pct=(n,d)=>d?Math.round(n/d*100)+'%':'—';
@@ -420,4 +422,64 @@ function mrMount(a){const old=$('#myrate');const html=mrCard(a);
  $('#mrOvClr').onclick=()=>mrSave(a,{overall_manual:null})}
 const _detail157=detail;
 detail=function(id){_detail157(id);const a=A.find(x=>x.id===id);if(!a)return;mrApply(a);mrMount(a)};
+nav();
+
+/* ===== v1.5.9: Questions for Philos (application_questions; answered here, read by the assistant) ===== */
+const AQ_KEY='jhp_list_aq';
+F.aq=(()=>{try{return sessionStorage.getItem(AQ_KEY)||''}catch(e){return''}})();
+const aqFor=id=>(window.AQ||[]).filter(q=>q.application_id===id&&q.status!=='withdrawn');
+const aqOpenN=id=>aqFor(id).filter(q=>q.status==='open').length;
+const aqAnsN=id=>aqFor(id).filter(q=>q.status==='answered').length;
+function aqBadge(a){const n=aqOpenN(a.id);return n?`<span class="aqb" title="${n} open question${n>1?'s':''} for you on this role">❓ ${n} open</span>`:''}
+const _fa159=filteredApps;
+filteredApps=function(){let r=_fa159();if(F.aq==='open')r=r.filter(a=>aqOpenN(a.id));else if(F.aq==='answered')r=r.filter(a=>aqAnsN(a.id));else if(F.aq==='any')r=r.filter(a=>aqFor(a.id).length);return r};
+const _list159=list,_rows159=rows;
+list=function(){_list159();const fl=document.querySelector('.filters');
+ if(fl&&!$('#aqf')){const tot=(window.AQ||[]).filter(q=>q.status==='open').length;
+  const o=[['','Any questions'],['open',`Has open questions (${tot})`],['answered','Has answered questions'],['any','Has any questions']];
+  const h=`<select id="aqf" title="Questions for Philos">${o.map(([v,l])=>`<option value="${v}" ${F.aq===v?'selected':''}>${l}</option>`).join('')}</select>`;
+  const chk=fl.querySelector('.chkf');if(chk)chk.insertAdjacentHTML('beforebegin',h);else fl.insertAdjacentHTML('beforeend',h);
+  $('#aqf').onchange=e=>{F.aq=e.target.value;try{sessionStorage.setItem(AQ_KEY,F.aq)}catch(_){}rows()}}
+ rows()};
+rows=function(){_rows159();
+ document.querySelectorAll('#tb tr.r').forEach(tr=>{const a=A.find(x=>x.id===tr.dataset.id);if(!a)return;const b=aqBadge(a);if(!b)return;
+  const co=tr.querySelector('.co');if(co)co.insertAdjacentHTML('beforeend',' '+b)});
+ if(F.aq){const c=$('#cnt');if(c&&!/question/.test(c.textContent))c.textContent+=` · questions filter: ${$('#aqf')?$('#aqf').selectedOptions[0].textContent:F.aq}`}};
+const _dash159=dash;
+dash=function(){_dash159();const open=(window.AQ||[]).filter(q=>q.status==='open');if(!open.length)return;
+ const ids=[...new Set(open.map(q=>q.application_id))];const names=ids.map(id=>(A.find(a=>a.id===id)||{}).company||id);
+ const ul=[...document.querySelectorAll('#app .card h2')].find(h=>/Action needed/.test(h.textContent));const list_=ul&&ul.parentElement.querySelector('ul.list');
+ if(list_)list_.insertAdjacentHTML('afterbegin',`<li><a href="#/list" id="aqgo"><b>❓ ${open.length} question${open.length>1?'s':''} waiting for you on ${ids.length} role${ids.length>1?'s':''}</b></a><div class="small muted">${names.slice(0,5).map(esc).join(', ')}${names.length>5?'…':''} — answer them right on each role</div></li>`);
+ const go=$('#aqgo');if(go)go.onclick=()=>{F.aq='open';try{sessionStorage.setItem(AQ_KEY,'open')}catch(_){}}};
+function aqItem(q){const ans=q.status==='answered';const nm='aq_'+q.id;
+ const inp=q.kind==='choice'?`<div class="aqopts">${(q.options||[]).map(o=>`<label class="aqopt${q.answer===o?' on':''}"><input type="radio" name="${nm}" value="${esc(o)}" ${q.answer===o?'checked':''}> ${esc(o)}</label>`).join('')}</div>
+  <input type="text" class="aqnote" placeholder="Optional comment" value="${esc(q.answer_note||'')}">`
+  :`<textarea class="aqtext" rows="4" placeholder="Type your answer…">${esc(q.answer||'')}</textarea>`;
+ return`<div class="aqq ${ans?'ans':'open'}" data-id="${q.id}"><div class="aqhd"><b>${esc(q.question)}</b> <span class="chip ${ans?'s-Applied':'s-Found'}">${ans?'Answered '+fmtTS(q.answered_at):'Open'}</span></div>
+ ${q.detail?`<div class="small muted aqdet">${esc(q.detail)}</div>`:''}${inp}
+ <div class="aqbtns"><button type="button" class="btn aqsave" style="border:0;cursor:pointer">${ans?'Update answer':'Save answer'}</button>${ans?' <button type="button" class="btn ghost aqclr">Clear (reopen)</button>':''} <span class="small aqmsg"></span></div></div>`}
+function aqCard(a){const qs=aqFor(a.id);if(!qs.length&&window.AQ_OK!==false)return'';
+ const open=qs.filter(q=>q.status==='open');const sorted=[...open,...qs.filter(q=>q.status!=='open')];
+ return`<div class="card aqcard" id="aqcard" style="margin-bottom:16px"><h2>❓ Questions for you <span class="small muted" style="font-weight:400">· ${open.length} open of ${qs.length} · your answers save here and I'll read them before submitting</span></h2>
+ ${window.AQ_OK===false?'<p class="small" style="color:#b42318">Questions table not set up yet (run alter_v159_application_questions.sql).</p>':''}${sorted.map(aqItem).join('')}</div>`}
+function aqHeader(a){const n=aqOpenN(a.id);const h=$('#app .chip.aqhd');if(h){if(!n)h.remove();else h.textContent=`❓ ${n} open question${n>1?'s':''}`;return}if(!n)return;
+ const fit=[...document.querySelectorAll('#app .card .chip')].find(x=>/^Fit /.test(x.textContent));
+ if(fit)fit.insertAdjacentHTML('afterend',` <a href="#aqcard" class="chip aqhd" onclick="event.preventDefault();document.getElementById('aqcard').scrollIntoView({behavior:'smooth'})">❓ ${n} open question${n>1?'s':''}</a>`)}
+function aqMount(a){const html=aqCard(a);const old=$('#aqcard');
+ if(old){if(html)old.outerHTML=html;else old.remove()}else if(html){const col=document.querySelector('.dgrid > div:first-child');if(!col)return;col.insertAdjacentHTML('afterbegin',html)}
+ aqHeader(a);const card=$('#aqcard');if(!card)return;
+ card.querySelectorAll('.aqq').forEach(el=>{const q=(window.AQ||[]).find(x=>x.id===el.dataset.id);if(!q)return;
+  el.querySelectorAll('input[type=radio]').forEach(r=>r.onchange=()=>el.querySelectorAll('.aqopt').forEach(l=>l.classList.toggle('on',l.querySelector('input').checked)));
+  el.querySelector('.aqsave').onclick=()=>{let ans,note=null;
+   if(q.kind==='choice'){const c=el.querySelector('input[type=radio]:checked');ans=c?c.value:'';note=(el.querySelector('.aqnote')||{}).value||null}else ans=(el.querySelector('.aqtext')||{}).value||'';
+   if(!String(ans).trim()){const m=el.querySelector('.aqmsg');m.style.color='#b42318';m.textContent=q.kind==='choice'?'Pick one of the choices first':'Type an answer first';return}
+   aqSave(a,q,{answer:String(ans).trim(),answer_note:note&&note.trim()?note.trim():null},el)};
+  const clr=el.querySelector('.aqclr');if(clr)clr.onclick=()=>aqSave(a,q,{answer:null,answer_note:null},el)})}
+async function aqSave(a,q,patch,el){const m=el.querySelector('.aqmsg');m.style.color='';m.textContent='Saving…';
+ const res=await window.SB.from('application_questions').update(patch).eq('id',q.id).select();
+ if(res.error||!res.data||!res.data.length){m.style.color='#b42318';m.textContent='Error: '+(res.error?res.error.message:'not saved (permission or sign-in expired)');return}
+ const i=window.AQ.findIndex(x=>x.id===q.id);if(i>=0)window.AQ[i]=res.data[0];aqMount(a);
+ const el2=document.querySelector(`.aqq[data-id="${q.id}"] .aqmsg`);if(el2){el2.style.color='#067647';el2.textContent='Saved ✓'}}
+const _detail159=detail;
+detail=function(id){_detail159(id);const a=A.find(x=>x.id===id);if(!a)return;aqMount(a)};
 nav();
