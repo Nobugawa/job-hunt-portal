@@ -116,3 +116,9 @@ a.chip.mrhd{text-decoration:none;color:inherit}
 .aqopt.on{border-color:#2f5bea;background:#eef3ff;color:#1d3fbf;font-weight:600}
 .aqnote,.aqtext{width:100%;box-sizing:border-box;padding:8px;border:1px solid #d9dde6;border-radius:8px;font:inherit;margin:4px 0}
 .aqbtns{margin-top:6px}
+
+/* v1.5.10 Outstanding column (blocking items + last discussed) */
+th.outcol,td.outcol{min-width:160px;max-width:260px;white-space:normal;vertical-align:top}
+.outcell{font-size:12px;line-height:1.35;color:#1f242e}
+.outtxt{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.outcard{border-left:4px solid #dc6803}
