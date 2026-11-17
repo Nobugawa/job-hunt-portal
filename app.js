@@ -483,3 +483,93 @@ async function aqSave(a,q,patch,el){const m=el.querySelector('.aqmsg');m.style.c
 const _detail159=detail;
 detail=function(id){_detail159(id);const a=A.find(x=>x.id===id);if(!a)return;aqMount(a)};
 nav();
+/* ===== v1.5.10: Outstanding column next to Status (tracker blocking items + last discussed) ===== */
+const OUT_KEY='jhp_list_out';
+F.out=(()=>{try{return sessionStorage.getItem(OUT_KEY)||''}catch(e){return''}})();
+function outLast(s){
+  s=String(s||'');
+  let m=s.match(/last discussed\s+(\d{4}-\d{2}-\d{2})/i); if(m)return m[1];
+  m=s.match(/\((\d{4}-\d{2}-\d{2})\)\s*$/); if(m)return m[1];
+  m=s.match(/\(([A-Za-z]{3,9})\s+(\d{1,2})\)\s*$/);
+  if(m){const months={jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12'};
+    const mon=months[m[1].slice(0,3).toLowerCase()]; if(mon)return `${(window.DATA_AS_OF||'2026').slice(0,4)}-${mon}-${String(m[2]).padStart(2,'0')}`;}
+  return '';
+}
+function outShort(s){
+  let t=String(s||'').replace(/\s*\(last discussed\s+\d{4}-\d{2}-\d{2}\)\s*$/i,'').trim();
+  if(t.length>120)t=t.slice(0,117).replace(/\s+\S*$/,'')+'…';
+  return t;
+}
+function outCell(a){
+  const t=(a.outstanding||'').trim();
+  if(!t)return '<span class="muted">—</span>';
+  const last=outLast(t);
+  return `<div class="outcell" title="${esc(t)}"><div class="outtxt">${esc(outShort(t))}</div>${last?`<div class="small muted">Last discussed ${fmtD(last)}</div>`:''}</div>`;
+}
+function outTh(){return `<th data-k="outstanding" class="outcol" title="Decisions and approvals still needed, plus the last date they were discussed.">Outstanding${F.sort==='outstanding'?(F.dir>0?' ▲':' ▼'):''}</th>`}
+const _fa1510=filteredApps;
+filteredApps=function(){
+  const q=(F.q||'').toLowerCase();
+  const bak=A.map(a=>a.notes);
+  A.forEach(a=>{if((a.outstanding||'').trim())a.notes=(a.notes||'')+' '+a.outstanding});
+  let r=_fa1510();
+  A.forEach((a,i)=>a.notes=bak[i]);
+  if(q)r=r.filter(a=>{ /* inner search already ran on notes+outstanding; keep r */ return true});
+  if(F.out==='yes')r=r.filter(a=>(a.outstanding||'').trim());
+  if(F.sort==='outstanding'){
+    r.sort((x,y)=>{
+      const xt=(x.outstanding||'').trim(),yt=(y.outstanding||'').trim();
+      if(!xt&&!yt)return 0; if(!xt)return 1; if(!yt)return-1;
+      const xd=outLast(xt)||'',yd=outLast(yt)||'';
+      if(xd!==yd)return xd.localeCompare(yd)*(F.dir||1);
+      return xt.localeCompare(yt)*(F.dir||1);
+    });
+  }
+  return r;
+};
+const _list1510=list,_rows1510=rows;
+list=function(){_list1510();
+  const st=document.querySelector('th[data-k="status"]');
+  if(st&&!document.querySelector('th[data-k="outstanding"]')){
+    st.insertAdjacentHTML('afterend',outTh());
+    const th=document.querySelector('th[data-k="outstanding"]');
+    if(th)th.onclick=()=>{F.dir=F.sort==='outstanding'?-F.dir:-1;F.sort='outstanding';list()};
+  }
+  const fl=document.querySelector('.filters');
+  if(fl&&!$('#outf')){
+    const n=A.filter(a=>(a.outstanding||'').trim()).length;
+    const o=[['','Any outstanding'],['yes',`Has outstanding (${n})`]];
+    const h=`<select id="outf" title="Outstanding (blocking items)">${o.map(([v,l])=>`<option value="${v}" ${F.out===v?'selected':''}>${l}</option>`).join('')}</select>`;
+    const aqf=$('#aqf'); if(aqf)aqf.insertAdjacentHTML('afterend',h); else{const chk=fl.querySelector('.chkf'); if(chk)chk.insertAdjacentHTML('beforebegin',h); else fl.insertAdjacentHTML('beforeend',h);}
+    $('#outf').onchange=e=>{F.out=e.target.value;try{sessionStorage.setItem(OUT_KEY,F.out)}catch(_){}rows()};
+  }
+  rows()};
+rows=function(){_rows1510();
+  document.querySelectorAll('#tb tr.r').forEach(tr=>{
+    const a=A.find(x=>x.id===tr.dataset.id); if(!a)return;
+    const tds=tr.children; if(!tds[3]||tr.querySelector('td.outcol'))return;
+    tds[3].insertAdjacentHTML('afterend',`<td class="outcol">${outCell(a)}</td>`);
+  });
+  if(F.out==='yes'){const c=$('#cnt'); if(c&&!/outstanding/.test(c.textContent))c.textContent+=' · outstanding only'}};
+const _dash1510=dash;
+dash=function(){_dash1510();
+  const held=A.filter(a=>(a.outstanding||'').trim()&&!['Applied','Interview','Offer','Rejected','Closed','Skipped'].includes(a.statusRaw||a.status));
+  if(!held.length)return;
+  const ul=[...document.querySelectorAll('#app .card h2')].find(h=>/Action needed/.test(h.textContent));
+  const list_=ul&&ul.parentElement.querySelector('ul.list');
+  if(list_&&!list_.querySelector('#outgo'))list_.insertAdjacentHTML('afterbegin',`<li><a href="#/list" id="outgo"><b>⏳ ${held.length} role${held.length===1?'':'s'} with outstanding items</b></a><div class="small muted">${held.slice(0,5).map(a=>esc(a.company)).join(', ')}${held.length>5?'…':''} — what's still holding a package or submission</div></li>`);
+  const go=$('#outgo'); if(go)go.onclick=()=>{F.out='yes';try{sessionStorage.setItem(OUT_KEY,'yes')}catch(_){}}};
+function outCard(a){
+  const t=(a.outstanding||'').trim(); if(!t)return'';
+  const last=outLast(t);
+  return `<div class="card outcard" id="outcard" style="margin-bottom:16px"><h2>⏳ Outstanding <span class="small muted" style="font-weight:400">${last?' · last discussed '+fmtD(last):' · decisions still needed'}</span></h2><p style="white-space:pre-wrap">${esc(t)}</p></div>`;
+}
+function outMount(a){
+  const html=outCard(a); const old=$('#outcard');
+  if(old){if(html)old.outerHTML=html;else old.remove()}
+  else if(html){const col=document.querySelector('.dgrid > div:first-child'); if(!col)return;
+    const aq=$('#aqcard'); if(aq)aq.insertAdjacentHTML('beforebegin',html); else col.insertAdjacentHTML('afterbegin',html)}
+}
+const _detail1510=detail;
+detail=function(id){_detail1510(id); const a=A.find(x=>x.id===id); if(!a)return; outMount(a)};
+nav();
