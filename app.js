@@ -573,3 +573,32 @@ function outMount(a){
 const _detail1510=detail;
 detail=function(id){_detail1510(id); const a=A.find(x=>x.id===id); if(!a)return; outMount(a)};
 nav();
+/* ===== v1.6.0: Standard Answers (standard_answers; canned answers for ALL applications, editable here, read by the assistant) ===== */
+const fmtET=t=>t?new Date(t).toLocaleString('en-US',{timeZone:'America/New_York',month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'})+' ET':'—';
+let SA=null,SAQ='';
+async function saLoad(){const r=await window.SB.from('standard_answers').select('*').order('sort').order('question').limit(1000);if(r.error)throw r.error;SA=r.data||[]}
+async function stdAnswers(){
+ document.querySelectorAll('nav a').forEach(x=>x.classList.toggle('on',x.dataset.v==='std'));
+ $('#app').innerHTML='<div class="card"><h1>Standard Answers</h1><p class="muted">Loading…</p></div>';
+ try{if(!SA)await saLoad()}catch(err){$('#app').innerHTML=`<div class="card"><h1>Standard Answers</h1><p class="small" style="color:#b42318">Couldn't load: ${esc(err.message)}${/does not exist|relation/.test(err.message)?' (run alter_v160_standard_answers.sql)':''}</p></div>`;return}
+ const last=SA.reduce((m,r)=>r.updated_at>m?r.updated_at:m,'');
+ $('#app').innerHTML=`<div class="card"><h1>Standard Answers</h1><p class="sub">Canned answers that apply to <b>every</b> application. Edit an answer or note and press Save; I read this page before filling any form. Anything not here still gets asked first.</p>
+ <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px"><input id="saq" placeholder="Search answers…" value="${esc(SAQ)}" style="flex:1;min-width:200px;padding:8px;border:1px solid #d9dde6;border-radius:8px"><span class="small muted">${SA.length} answers · last updated ${fmtET(last)}</span></div></div><div id="sal"></div>`;
+ const draw=()=>{const q=SAQ.toLowerCase();const rows=SA.filter(r=>!q||[r.category,r.question,r.answer,r.notes].join(' ').toLowerCase().includes(q));
+  const cats=[...new Set(rows.map(r=>r.category))];
+  $('#sal').innerHTML=cats.map(c=>`<div class="card sacat" style="margin-top:16px"><h2>${esc(c)} <span class="small muted" style="font-weight:400">· ${rows.filter(r=>r.category===c).length}</span></h2>
+   ${rows.filter(r=>r.category===c).map(r=>`<div class="saq" data-id="${r.id}"><div class="saqh"><b>${esc(r.question)}</b><span class="small muted">updated ${fmtET(r.updated_at)}</span></div>
+    <div class="saf"><label class="small muted">Answer<textarea class="saa" rows="1">${esc(r.answer||'')}</textarea></label><label class="small muted">Notes<textarea class="san" rows="1" placeholder="Optional">${esc(r.notes||'')}</textarea></label></div>
+    <div class="sab"><button type="button" class="btn sas" style="border:0;cursor:pointer" disabled>Save</button> <span class="small sam"></span></div></div>`).join('')}</div>`).join('')||'<div class="card" style="margin-top:16px"><p class="muted">No matches</p></div>';
+  document.querySelectorAll('#sal textarea').forEach(t=>{const fit=()=>{t.style.height='auto';t.style.height=(t.scrollHeight+2)+'px'};fit();t.addEventListener('input',fit)});
+  document.querySelectorAll('.saq').forEach(el=>{const r=SA.find(x=>x.id===el.dataset.id);const b=el.querySelector('.sas'),m=el.querySelector('.sam');
+   const dirty=()=>{const d=el.querySelector('.saa').value.trim()!==(r.answer||'')||el.querySelector('.san').value.trim()!==(r.notes||'');b.disabled=!d;if(d){m.style.color='#b54708';m.textContent='Unsaved changes'}else m.textContent=''};
+   el.querySelectorAll('textarea').forEach(t=>t.addEventListener('input',dirty));
+   b.onclick=async()=>{m.style.color='';m.textContent='Saving…';b.disabled=true;
+    const patch={answer:el.querySelector('.saa').value.trim()||null,notes:el.querySelector('.san').value.trim()||null};
+    const res=await window.SB.from('standard_answers').update(patch).eq('id',r.id).select();
+    if(res.error||!res.data||!res.data.length){m.style.color='#b42318';m.textContent='Error: '+(res.error?res.error.message:'not saved (permission or sign-in expired)');b.disabled=false;return}
+    Object.assign(r,res.data[0]);el.querySelector('.saqh .muted').textContent='updated '+fmtET(r.updated_at);m.style.color='#067647';m.textContent='Saved ✓'}})};
+ $('#saq').oninput=e=>{SAQ=e.target.value;draw()};draw()}
+const _dash160=dash;dash=function(){if(location.hash.startsWith('#/answers'))return stdAnswers();return _dash160()};
+nav();

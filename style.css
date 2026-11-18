@@ -122,3 +122,10 @@ th.outcol,td.outcol{min-width:160px;max-width:260px;white-space:normal;vertical-
 .outcell{font-size:12px;line-height:1.35;color:#1f242e}
 .outtxt{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .outcard{border-left:4px solid #dc6803}
+/* v1.6.0 Standard Answers */
+.saq{border-top:1px solid #eef0f4;padding:12px 0}.saq:first-of-type{border-top:0;padding-top:0}
+.saqh{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.saf{display:grid;grid-template-columns:1fr 1fr;gap:10px}.saf label{display:flex;flex-direction:column;gap:3px}
+.saf textarea{font:inherit;font-size:14px;color:#1d2433;padding:7px 9px;border:1px solid #d9dde6;border-radius:8px;resize:vertical;min-height:36px}
+.sab{margin-top:6px}.sab .btn{padding:5px 12px}
+@media(max-width:700px){.saf{grid-template-columns:1fr}}
