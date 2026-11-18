@@ -602,3 +602,42 @@ async function stdAnswers(){
  $('#saq').oninput=e=>{SAQ=e.target.value;draw()};draw()}
 const _dash160=dash;dash=function(){if(location.hash.startsWith('#/answers'))return stdAnswers();return _dash160()};
 nav();
+
+/* ===== v1.6.1: one Dashboard "Action needed" item for roles waiting on Philos ===== */
+const FINAL_ST=['Applied','Interview','Offer','Rejected','Closed','Skipped'];
+function hasOutstandingHeld(a){return !!(a.outstanding||'').trim()&&!FINAL_ST.includes(a.statusRaw||a.status)}
+function waitingOnYou(a){return aqOpenN(a.id)>0||hasOutstandingHeld(a)}
+function waitingRoles(){
+  const seen=new Set(),out=[];
+  (window.AQ||[]).filter(q=>q.status==='open').forEach(q=>{
+    if(seen.has(q.application_id))return;
+    const a=A.find(x=>x.id===q.application_id);
+    if(a){seen.add(a.id);out.push(a)}
+  });
+  A.filter(hasOutstandingHeld).forEach(a=>{if(!seen.has(a.id)){seen.add(a.id);out.push(a)}});
+  return out;
+}
+const _fa161=filteredApps;
+filteredApps=function(){let r=_fa161();if(F.aq==='waiting')r=r.filter(waitingOnYou);return r};
+const _list161=list;
+list=function(){_list161();
+  const sel=$('#aqf');
+  if(sel&&!sel.querySelector('option[value="waiting"]')){
+    const n=A.filter(waitingOnYou).length;
+    sel.insertAdjacentHTML('beforeend',`<option value="waiting" ${F.aq==='waiting'?'selected':''}>Waiting on you (${n})</option>`);
+  }
+};
+const _dash161=dash;
+dash=function(){
+  if(location.hash.startsWith('#/answers'))return stdAnswers();
+  _dash161();
+  if(location.hash.startsWith('#/comms'))return;
+  ['#aqgo','#outgo'].forEach(id=>{const el=$(id);if(el){const li=el.closest('li');if(li)li.remove()}});
+  const held=waitingRoles();
+  if(!held.length)return;
+  const ul=[...document.querySelectorAll('#app .card h2')].find(h=>/Action needed/.test(h.textContent));
+  const list_=ul&&ul.parentElement.querySelector('ul.list');
+  if(list_&&!list_.querySelector('#yougo'))list_.insertAdjacentHTML('afterbegin',`<li><a href="#/list" id="yougo"><b>🙋 ${held.length} role${held.length===1?'':'s'} waiting on you</b></a><div class="small muted">${held.slice(0,5).map(a=>esc(a.company)).join(', ')}${held.length>5?'…':''} — open questions or outstanding items</div></li>`);
+  const go=$('#yougo');if(go)go.onclick=()=>{F.aq='waiting';try{sessionStorage.setItem(AQ_KEY,'waiting')}catch(_){}F.out='';try{sessionStorage.setItem(OUT_KEY,'')}catch(_){}};
+};
+nav();
