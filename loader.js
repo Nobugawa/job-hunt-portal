@@ -13,7 +13,7 @@ const rng=(a,b,t)=>a?(a===b?`$${a/1000}k`:`$${a/1000}k–$${b/1000}k`):(t||'');
 async function load(){
  const q=t=>sb.from(t).select('*').limit(5000).then(r=>{if(r.error)throw r.error;return r.data});
  let [apps,acts,comps,cons,ints,items,meta]=await Promise.all(['applications','activities','companies','contacts','interactions','action_items','app_meta'].map(q));
- window.APPS=apps.sort((a,b)=>a.id.localeCompare(b.id)).map(a=>({id:a.id,company:a.company,companyId:a.company_id,role:a.title,location:a.location,commute:a.commute_note,size:a.company_size_note,industry:a.industry,
+ window.APPS=apps.sort((a,b)=>a.id.localeCompare(b.id)).map(a=>({id:a.id,company:a.company,companyId:a.company_id,role:a.title,location:a.location,commute:a.commute_note,workMode:a.work_mode||'',workModeDetail:a.work_mode_detail||'',officeLocation:a.office_location||'',size:a.company_size_note,industry:a.industry,
   payMin:a.pay_posted_min,payMax:a.pay_posted_max,payText:a.pay_posted_text||'',estMin:a.pay_est_min,estMax:a.pay_est_max,pay:a.pay_posted_min?rng(a.pay_posted_min,a.pay_posted_max):'',est:a.pay_est_min?'est. '+rng(a.pay_est_min,a.pay_est_max):'',found:a.date_found||'',posted:a.date_posted||'',source:a.source,url:a.posting_url,
   route:a.apply_route_raw,fit:a.fit_score,fitNotes:a.fit_notes,status:a.status==='Interview'?'Applied':a.status,status2:a.status==='Interview'?'Interview':'',statusRaw:a.status_detail||a.status,
   applied:a.date_applied||'',resume:a.resume_file,letter:a.cover_letter_file,followup:a.follow_up_date||'',contact:a.contact_text,notes:a.notes_raw,outstanding:a.blocking_items||'',track:a.track,trackInferred:a.track_inferred,
