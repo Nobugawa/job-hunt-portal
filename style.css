@@ -135,3 +135,5 @@ th.wmcol,td.wmcol{min-width:88px;max-width:130px;white-space:normal;vertical-ali
 .wmchip.wm-On-site{background:#f3f4f6;color:#374151}
 .wmchip.wm-Hybrid{background:#eef2ff;color:#27418a}
 .wmchip.wm-Remote{background:#ecfdf3;color:#166534}
+
+.person .pn{color:inherit;text-decoration:underline;text-underline-offset:2px}
