@@ -641,3 +641,79 @@ dash=function(){
   const go=$('#yougo');if(go)go.onclick=()=>{F.aq='waiting';try{sessionStorage.setItem(AQ_KEY,'waiting')}catch(_){}F.out='';try{sessionStorage.setItem(OUT_KEY,'')}catch(_){}};
 };
 nav();
+
+/* ===== v1.6.2: work mode + office location (list column/filter; detail next to Commute) ===== */
+const WM_KEY='jhp_list_wm';
+F.wm=(()=>{try{return sessionStorage.getItem(WM_KEY)||''}catch(e){return''}})();
+function wmLabel(a){
+  const m=a.workMode||'';
+  if(!m)return '';
+  return a.workModeDetail?`${m} · ${a.workModeDetail}`:m;
+}
+function wmChip(a){
+  const m=a.workMode||'';
+  if(!m)return '<span class="muted">—</span>';
+  const tip=esc(wmLabel(a)+(a.officeLocation?' · '+a.officeLocation:''));
+  return `<span class="wmchip wm-${m}" title="${tip}">${esc(m)}</span>${a.workModeDetail?`<div class="small muted">${esc(a.workModeDetail)}</div>`:''}`;
+}
+function wmTh(){return `<th data-k="workMode" class="wmcol" title="On-site, Hybrid, or Remote">Work mode${F.sort==='workMode'?(F.dir>0?' ▲':' ▼'):''}</th>`}
+const _fa162=filteredApps;
+filteredApps=function(){
+  const bak=A.map(a=>a.notes);
+  A.forEach(a=>{a.notes=(a.notes||'')+' '+(a.workMode||'')+' '+(a.workModeDetail||'')+' '+(a.officeLocation||'')});
+  let r=_fa162();
+  A.forEach((a,i)=>a.notes=bak[i]);
+  if(F.wm==='blank')r=r.filter(a=>!(a.workMode||'').trim());
+  else if(F.wm)r=r.filter(a=>a.workMode===F.wm);
+  if(F.sort==='workMode'){
+    const rank=m=>({ 'On-site':1,'Hybrid':2,'Remote':3}[m]||9);
+    r.sort((x,y)=>{
+      const d=rank(x.workMode)-rank(y.workMode);
+      if(d)return d*(F.dir||1);
+      return String(x.workModeDetail||'').localeCompare(String(y.workModeDetail||''))*(F.dir||1);
+    });
+  }
+  return r;
+};
+const _list162=list,_rows162=rows;
+list=function(){_list162();
+  const co=document.querySelector('th[data-k="company"]');
+  if(co&&!document.querySelector('th[data-k="workMode"]')){
+    co.insertAdjacentHTML('afterend',wmTh());
+    const th=document.querySelector('th[data-k="workMode"]');
+    if(th)th.onclick=()=>{F.dir=F.sort==='workMode'?-F.dir:1;F.sort='workMode';list()};
+  }
+  const fl=document.querySelector('.filters');
+  if(fl&&!$('#wmf')){
+    const counts={};
+    A.forEach(a=>{const k=a.workMode||'blank';counts[k]=(counts[k]||0)+1});
+    const o=[['',`All work modes`],[ 'On-site',`On-site (${counts['On-site']||0})`],[ 'Hybrid',`Hybrid (${counts['Hybrid']||0})`],[ 'Remote',`Remote (${counts['Remote']||0})`],[ 'blank',`Unspecified (${counts['blank']||0})`]];
+    const h=`<select id="wmf" title="Work mode">${o.map(([v,l])=>`<option value="${v}" ${F.wm===v?'selected':''}>${l}</option>`).join('')}</select>`;
+    const outf=$('#outf'); if(outf)outf.insertAdjacentHTML('afterend',h);
+    else {const chk=fl.querySelector('.chkf'); if(chk)chk.insertAdjacentHTML('beforebegin',h); else fl.insertAdjacentHTML('beforeend',h);}
+    $('#wmf').onchange=e=>{F.wm=e.target.value;try{sessionStorage.setItem(WM_KEY,F.wm)}catch(_){}rows()};
+  }
+  rows()};
+rows=function(){_rows162();
+  document.querySelectorAll('#tb tr.r').forEach(tr=>{
+    const a=A.find(x=>x.id===tr.dataset.id); if(!a)return;
+    if(tr.querySelector('td.wmcol'))return;
+    const co=tr.querySelector('td.k');
+    if(co)co.insertAdjacentHTML('afterend',`<td class="wmcol">${wmChip(a)}</td>`);
+  });
+  if(F.wm){const c=$('#cnt'); if(c&&!/work mode/.test(c.textContent))c.textContent+=` · work mode: ${F.wm==='blank'?'unspecified':F.wm}`}};
+function wmMount(a){
+  const dl=document.querySelector('.dgrid .kv')||document.querySelector('.kv');
+  if(!dl||dl.querySelector('.wm-dt'))return;
+  const dts=[...dl.querySelectorAll('dt')];
+  const commute=dts.find(dt=>dt.textContent.trim()==='Commute');
+  if(!commute)return;
+  const dd=commute.nextElementSibling;
+  if(!dd)return;
+  const mode=a.workMode?`${esc(a.workMode)}${a.workModeDetail?`<div class="small muted">${esc(a.workModeDetail)}</div>`:''}`:'<span class="muted">—</span>';
+  const off=a.officeLocation?esc(a.officeLocation):'<span class="muted">—</span>';
+  dd.insertAdjacentHTML('afterend',`<dt class="wm-dt">Work mode</dt><dd class="wm-dd">${mode}</dd><dt class="wm-dt">Office</dt><dd class="wm-dd">${off}</dd>`);
+}
+const _detail162=detail;
+detail=function(id){_detail162(id); const a=A.find(x=>x.id===id); if(!a)return; wmMount(a)};
+nav();

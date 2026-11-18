@@ -129,3 +129,9 @@ th.outcol,td.outcol{min-width:160px;max-width:260px;white-space:normal;vertical-
 .saf textarea{font:inherit;font-size:14px;color:#1d2433;padding:7px 9px;border:1px solid #d9dde6;border-radius:8px;resize:vertical;min-height:36px}
 .sab{margin-top:6px}.sab .btn{padding:5px 12px}
 @media(max-width:700px){.saf{grid-template-columns:1fr}}
+
+th.wmcol,td.wmcol{min-width:88px;max-width:130px;white-space:normal;vertical-align:top}
+.wmchip{display:inline-block;font-size:11px;font-weight:600;padding:2px 7px;border-radius:999px;background:#eef2ff;color:#27418a}
+.wmchip.wm-On-site{background:#f3f4f6;color:#374151}
+.wmchip.wm-Hybrid{background:#eef2ff;color:#27418a}
+.wmchip.wm-Remote{background:#ecfdf3;color:#166534}
