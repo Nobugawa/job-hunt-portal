@@ -717,3 +717,120 @@ function wmMount(a){
 const _detail162=detail;
 detail=function(id){_detail162(id); const a=A.find(x=>x.id===id); if(!a)return; wmMount(a)};
 nav();
+
+/* ===== v1.6.4: Outreach tasks (outreach_tasks; InMail + connection request in one place) ===== */
+const OT_ST=[['to_send','To send'],['inmail_sent','InMail sent'],['connect_sent','Connection request sent'],['connected','Connected'],['replied','Replied'],['done','Done'],['dropped','Dropped']];
+const OT_KEY='jhp_list_ot';
+F.ot=(()=>{try{return sessionStorage.getItem(OT_KEY)||''}catch(e){return''}})();
+const otOpen=t=>t.status!=='done'&&t.status!=='dropped';
+const otFor=id=>(window.OT||[]).filter(t=>t.jh_id===id);
+const otToSendN=()=>(window.OT||[]).filter(t=>t.status==='to_send').length;
+const otOpenN=id=>otFor(id).filter(otOpen).length;
+const otLabel=s=>(OT_ST.find(x=>x[0]===s)||[s,s])[1];
+const otChipCls=s=>s==='to_send'?'s-Found':s==='dropped'?'s-Rejected':(s==='done'||s==='replied'||s==='connected')?'s-Applied':'s-Found';
+function otSort(list){return[...list].sort((a,b)=>{const ao=otOpen(a)?0:1,bo=otOpen(b)?0:1;if(ao!==bo)return ao-bo;return String(b.revision_at||b.updated_at||'').localeCompare(String(a.revision_at||a.updated_at||''))})}
+function otBadge(a){const n=otFor(a.id).filter(t=>t.status==='to_send').length,o=otOpenN(a.id);if(n)return`<span class="otb" title="${n} outreach task${n>1?'s':''} to send">✉️ ${n} to send</span>`;if(o)return`<span class="otb" title="${o} open outreach task${o>1?'s':''}">✉️ ${o} open</span>`;return''}
+function otChar(s){const n=String(s||'').length;return`<span class="otcc${n>300?' over':''}">${n} / 300</span>`}
+async function otCopy(btn,text){const prev=btn.textContent;try{await navigator.clipboard.writeText(text||'');btn.textContent='Copied'}catch(e){const ta=document.createElement('textarea');ta.value=text||'';ta.style.position='fixed';ta.style.left='-9999px';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');btn.textContent='Copied'}catch(_){btn.textContent='Copy failed'}ta.remove()}setTimeout(()=>{btn.textContent=prev},1200)}
+function otCopyBtn(label){return`<button type="button" class="btn ghost otcopy" data-copy="${esc(label)}" style="cursor:pointer">Copy</button>`}
+function otItem(t){
+  const person=t.linkedin_url?`<a href="${esc(t.linkedin_url)}" target="_blank" rel="noopener">${esc(t.person_name||'Unknown')}</a>`:esc(t.person_name||'Unknown');
+  const role=t.jh_id?`<a href="#/app/${esc(t.jh_id)}">${esc(t.company||'Role')} · ${esc(t.jh_id)}</a>`:esc(t.company||'');
+  const rev=[t.revision_at?`Revised ${fmtET(t.revision_at)}`:'',t.chat_stamp||''].filter(Boolean).join(' · ');
+  const st=OT_ST.map(([v,l])=>`<option value="${v}" ${t.status===v?'selected':''}>${l}</option>`).join('');
+  return`<div class="ott ${otOpen(t)?'open':'closed'}" data-id="${t.id}">
+ <div class="oth"><div><div class="otwho"><b>${person}</b>${t.person_title?` · ${esc(t.person_title)}`:''}</div>
+ <div class="small muted otmeta">${role}${t.channel?` · ${esc(t.channel)}`:''}</div></div>
+ <span class="chip ${otChipCls(t.status)}">${esc(otLabel(t.status))}</span></div>
+ <div class="otblk"><div class="otblkhd"><b class="small">Subject</b>${otCopyBtn('subject')}</div><div class="otpre ot-subject">${esc(t.inmail_subject||'')||'<span class="muted">—</span>'}</div></div>
+ <div class="otblk"><div class="otblkhd"><b class="small">InMail</b>${otCopyBtn('inmail')}</div><div class="otpre ot-inmail">${esc(t.inmail_body||'')||'<span class="muted">—</span>'}</div></div>
+ <div class="otblk"><div class="otblkhd"><b class="small">Connection note ${otChar(t.connection_note)}</b>${otCopyBtn('note')}</div><div class="otpre ot-note">${esc(t.connection_note||'')||'<span class="muted">—</span>'}</div></div>
+ ${t.notes?`<div class="small muted" style="margin-top:6px">${esc(t.notes)}</div>`:''}
+ ${rev?`<div class="small muted" style="margin-top:6px">${esc(rev)}</div>`:''}
+ <div class="otst"><label class="small muted">Status <select class="otstatus">${st}</select></label> <span class="small otmsg"></span></div></div>`}
+function otBind(root){
+  if(!root)return;
+  root.querySelectorAll('.ott').forEach(el=>{
+    const t=(window.OT||[]).find(x=>x.id===el.dataset.id);if(!t)return;
+    el.querySelectorAll('.otcopy').forEach(btn=>btn.onclick=()=>{
+      const which=btn.dataset.copy;
+      const text=which==='subject'?t.inmail_subject:which==='inmail'?t.inmail_body:t.connection_note;
+      otCopy(btn,text||'');
+    });
+    const sel=el.querySelector('.otstatus');
+    if(sel)sel.onchange=()=>otSaveStatus(t,sel.value,el);
+  });
+}
+async function otSaveStatus(t,status,el){
+  const m=el.querySelector('.otmsg');if(m){m.style.color='';m.textContent='Saving…'}
+  const res=await window.SB.from('outreach_tasks').update({status}).eq('id',t.id).select();
+  if(res.error||!res.data||!res.data.length){if(m){m.style.color='#b42318';m.textContent='Error: '+(res.error?res.error.message:'not saved (permission or sign-in expired)')}el.querySelector('.otstatus').value=t.status;return}
+  const i=(window.OT||[]).findIndex(x=>x.id===t.id);if(i>=0)window.OT[i]=res.data[0];
+  const a=A.find(x=>x.id===res.data[0].jh_id);
+  if(location.hash.startsWith('#/outreach'))otPage();
+  else if(a){otMount(a);const row=document.querySelector(`#tb tr.r[data-id="${a.id}"]`);if(row){const old=row.querySelector('.otb');const b=otBadge(a);if(old&&b)old.outerHTML=b;else if(old&&!b)old.remove();else if(!old&&b){const co=row.querySelector('.co');if(co)co.insertAdjacentHTML('beforeend',' '+b)}}}
+  const el2=document.querySelector(`.ott[data-id="${t.id}"] .otmsg`);if(el2){el2.style.color='#067647';el2.textContent='Saved ✓'}
+}
+function otCard(a){
+  const ts=otSort(otFor(a.id));
+  if(!ts.length&&window.OT_OK!==false)return'';
+  const open=ts.filter(otOpen).length;
+  return`<div class="card otcard" id="otcard" style="margin-bottom:16px"><h2>✉️ Outreach <span class="small muted" style="font-weight:400">· ${open} open of ${ts.length} · copy the InMail and connection note, then update the status</span></h2>
+ ${window.OT_OK===false?'<p class="small" style="color:#b42318">Outreach table not set up yet (run alter_v164_outreach_tasks.sql).</p>':''}${ts.map(otItem).join('')}</div>`}
+function otHeader(a){
+  const n=otFor(a.id).filter(t=>t.status==='to_send').length,o=otOpenN(a.id);
+  const label=n?`✉️ ${n} to send`:o?`✉️ ${o} open outreach`:'';
+  const h=$('#app .chip.othd');
+  if(h){if(!label)h.remove();else h.textContent=label;return}
+  if(!label)return;
+  const fit=[...document.querySelectorAll('#app .card .chip')].find(x=>/^Fit /.test(x.textContent));
+  if(fit)fit.insertAdjacentHTML('afterend',` <a href="#otcard" class="chip othd" onclick="event.preventDefault();document.getElementById('otcard').scrollIntoView({behavior:'smooth'})">${label}</a>`);
+}
+function otMount(a){
+  const html=otCard(a);const old=$('#otcard');
+  if(old){if(html)old.outerHTML=html;else old.remove()}
+  else if(html){const aq=$('#aqcard');if(aq)aq.insertAdjacentHTML('afterend',html);else{const col=document.querySelector('.dgrid > div:first-child');if(!col)return;col.insertAdjacentHTML('afterbegin',html)}}
+  otHeader(a);otBind($('#otcard'));
+}
+function otPage(){
+  document.querySelectorAll('nav a').forEach(x=>x.classList.toggle('on',x.dataset.v==='outreach'));
+  const all=window.OT||[];
+  const open=otSort(all.filter(otOpen));const closed=otSort(all.filter(t=>!otOpen(t)));
+  const n=otToSendN();
+  $('#app').innerHTML=`<div class="card" style="margin-bottom:16px"><h1>Outreach</h1>
+ <p class="sub">InMail and connection-request drafts in one place, so they don't fall by the wayside. Copy a field, send it from LinkedIn yourself, then mark the status here. Open tasks are listed first.</p>
+ <div class="small muted">${n} to send · ${open.length} open · ${all.length} total${window.OT_OK===false?' · table not set up yet (run alter_v164_outreach_tasks.sql)':''}</div></div>
+ ${open.length?`<div class="card otcard" style="margin-bottom:16px"><h2>Open</h2>${open.map(otItem).join('')}</div>`:''}
+ ${closed.length?`<div class="card otcard closed" style="margin-bottom:16px"><h2>Done / dropped</h2>${closed.map(otItem).join('')}</div>`:''}
+ ${!all.length?'<div class="card"><p class="muted">No outreach tasks yet.</p></div>':''}`;
+  otBind($('#app'));
+}
+const _fa164=filteredApps;
+filteredApps=function(){let r=_fa164();if(F.ot==='to_send')r=r.filter(a=>otFor(a.id).some(t=>t.status==='to_send'));else if(F.ot==='open')r=r.filter(a=>otOpenN(a.id));else if(F.ot==='any')r=r.filter(a=>otFor(a.id).length);return r};
+const _list164=list,_rows164=rows;
+list=function(){_list164();const fl=document.querySelector('.filters');
+ if(fl&&!$('#otf')){const n=otToSendN();
+  const o=[['','Any outreach'],['to_send',`Outreach to send (${n})`],['open','Has open outreach'],['any','Has any outreach']];
+  const h=`<select id="otf" title="Outreach tasks">${o.map(([v,l])=>`<option value="${v}" ${F.ot===v?'selected':''}>${l}</option>`).join('')}</select>`;
+  const aqf=$('#aqf');if(aqf)aqf.insertAdjacentHTML('afterend',h);else{const chk=fl.querySelector('.chkf');if(chk)chk.insertAdjacentHTML('beforebegin',h);else fl.insertAdjacentHTML('beforeend',h)}
+  $('#otf').onchange=e=>{F.ot=e.target.value;try{sessionStorage.setItem(OT_KEY,F.ot)}catch(_){}rows()}}
+ rows()};
+rows=function(){_rows164();
+ document.querySelectorAll('#tb tr.r').forEach(tr=>{const a=A.find(x=>x.id===tr.dataset.id);if(!a||tr.querySelector('.otb'))return;const b=otBadge(a);if(!b)return;const co=tr.querySelector('.co');if(co)co.insertAdjacentHTML('beforeend',' '+b)});
+ if(F.ot){const c=$('#cnt');if(c&&!/outreach/.test(c.textContent))c.textContent+=` · outreach filter: ${$('#otf')?$('#otf').selectedOptions[0].textContent:F.ot}`}};
+const _dash164=dash;
+dash=function(){
+  if(location.hash.startsWith('#/outreach'))return otPage();
+  _dash164();
+  if(location.hash.startsWith('#/comms')||location.hash.startsWith('#/answers')||location.hash.startsWith('#/outreach')||location.hash.startsWith('#/list')||location.hash.startsWith('#/app'))return;
+  const n=otToSendN();if(!n)return;
+  const ul=[...document.querySelectorAll('#app .card h2')].find(h=>/Action needed/.test(h.textContent));
+  const list_=ul&&ul.parentElement.querySelector('ul.list');
+  if(list_&&!list_.querySelector('#otgo')){
+    const names=[...new Set((window.OT||[]).filter(t=>t.status==='to_send').map(t=>t.company||t.jh_id))];
+    list_.insertAdjacentHTML('afterbegin',`<li><a href="#/outreach" id="otgo"><b>✉️ ${n} outreach task${n===1?'':'s'} to send</b></a><div class="small muted">${names.slice(0,5).map(esc).join(', ')}${names.length>5?'…':''} — InMail and connection note, ready to copy</div></li>`);
+  }
+};
+const _detail164=detail;
+detail=function(id){_detail164(id);const a=A.find(x=>x.id===id);if(!a)return;otMount(a)};
+nav();
