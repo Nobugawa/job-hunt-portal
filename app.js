@@ -856,7 +856,7 @@ function otPage(){
   const all=window.OT||[];const cos=[...new Set(all.map(t=>`${t.jh_id||''}|${otCo(t)}`))].sort();
   $('#app').innerHTML=`<div class="card otpage"><div class="othd"><div><h1>Outreach</h1><p class="sub">LinkedIn and email outreach, one card per person. Copy each step, send it yourself, then tick it done.</p></div>
   <div class="otlegend small muted"><span><i class="lg c-outstanding"></i>Due now</span><span><i class="lg c-overdue"></i>Overdue</span><span><i class="lg c-waiting"></i>Waiting on reply</span><span><i class="lg c-complete"></i>Complete</span></div></div>
-  <div class="otfilters"><div class="otseg" role="tablist">${['active','outstanding','waiting','complete','all'].map(k=>`<button type="button" data-cat="${k}" class="${OTF.cat===k?'on':''}">${{active:'Active',outstanding:'Outstanding',waiting:'Waiting on reply',complete:'Complete',all:'All'}[k]} <span class="otn" data-n="${k}"></span></button>`).join('')}</div>
+  <div class="otfilters"><div class="otseg" role="tablist">${['active','outstanding','waiting','complete','all'].map(k=>`<button type="button" data-cat="${k}" class="${OTF.cat===k?'on':''}">${{active:'Active',outstanding:'Outstanding',waiting:'Waiting<span class="hm"> on reply</span>',complete:'Complete',all:'All'}[k]} <span class="otn" data-n="${k}"></span></button>`).join('')}</div>
    <select id="otco"><option value="">All companies / JH</option>${cos.map(k=>{const[j,c]=k.split('|');return`<option value="${esc(k)}" ${OTF.co===k?'selected':''}>${esc(c)}${j?` · ${esc(j)}`:''}</option>`}).join('')}</select>
    <input id="otq" type="search" placeholder="Search name, company, text…" value="${esc(OTF.q)}">
    <label class="chkf otsd"><input type="checkbox" id="otsd" ${OTF.showDone?'checked':''}> Show completed</label></div>
@@ -919,3 +919,6 @@ const _detail164=detail;
 detail=function(id){_detail164(id);const a=A.find(x=>x.id===id);if(!a)return;otMount(a)};
 nav();
 otNavBadge();
+/* v1.7.0: on narrow screens the nav scrolls sideways; keep the current tab in view */
+function navIntoView(){const n=document.getElementById('nav'),a=n&&n.querySelector('a.on');if(!a||n.scrollWidth<=n.clientWidth)return;const nr=n.getBoundingClientRect(),ar=a.getBoundingClientRect();n.scrollLeft+=ar.left-nr.left-(nr.width-ar.width)/2}
+addEventListener('hashchange',()=>setTimeout(navIntoView,0));navIntoView();
