@@ -718,68 +718,125 @@ const _detail162=detail;
 detail=function(id){_detail162(id); const a=A.find(x=>x.id===id); if(!a)return; wmMount(a)};
 nav();
 
-/* ===== v1.6.4: Outreach tasks (outreach_tasks; InMail + connection request in one place) ===== */
+/* ===== v1.6.4: Outreach tasks (outreach_tasks; InMail + connection request in one place) =====
+   v1.7.0: compact tiles with a status color, filters, accordion expand/collapse, prev/next arrows,
+   and ordered multi-step sequences (outreach_tasks.steps). Legacy cards (no steps) become 1–2 steps
+   derived from inmail_subject/inmail_body/connection_note + status. */
 const OT_ST=[['to_send','To send'],['inmail_sent','InMail sent'],['connect_sent','Connection request sent'],['connected','Connected'],['replied','Replied'],['done','Done'],['dropped','Dropped']];
-const OT_KEY='jhp_list_ot';
+const OT_KEY='jhp_list_ot',OTF_KEY='jhp_ot_f170';
 F.ot=(()=>{try{return sessionStorage.getItem(OT_KEY)||''}catch(e){return''}})();
+const OTF=(()=>{try{return Object.assign({cat:'active',co:'',q:'',showDone:false,open:''},JSON.parse(sessionStorage.getItem(OTF_KEY)||'{}'))}catch(e){return{cat:'active',co:'',q:'',showDone:false,open:''}}})();
+const otSaveF=()=>{try{sessionStorage.setItem(OTF_KEY,JSON.stringify(OTF))}catch(e){}};
 const otOpen=t=>t.status!=='done'&&t.status!=='dropped';
 const otFor=id=>(window.OT||[]).filter(t=>t.jh_id===id);
-const otToSendN=()=>(window.OT||[]).filter(t=>t.status==='to_send').length;
-const otOpenN=id=>otFor(id).filter(otOpen).length;
 const otLabel=s=>(OT_ST.find(x=>x[0]===s)||[s,s])[1];
-const otChipCls=s=>s==='to_send'?'s-Found':s==='dropped'?'s-Rejected':(s==='done'||s==='replied'||s==='connected')?'s-Applied':'s-Found';
-function otSort(list){return[...list].sort((a,b)=>{const ao=otOpen(a)?0:1,bo=otOpen(b)?0:1;if(ao!==bo)return ao-bo;return String(b.revision_at||b.updated_at||'').localeCompare(String(a.revision_at||a.updated_at||''))})}
-function otBadge(a){const n=otFor(a.id).filter(t=>t.status==='to_send').length,o=otOpenN(a.id);if(n)return`<span class="otb" title="${n} outreach task${n>1?'s':''} to send">✉️ ${n} to send</span>`;if(o)return`<span class="otb" title="${o} open outreach task${o>1?'s':''}">✉️ ${o} open</span>`;return''}
+const otCo=t=>String(t.company||'').split(' (')[0]||t.jh_id||'';
+const OT_KIND={thread_reply:'Thread reply',inmail:'InMail',connection_note:'Connection note',follow_up:'Follow-up'};
+const OT_WHEN={now:'Now',right_after:'Right after',later:'Later'};
+/* Steps: stored sequence, or derived from the v1.6.4 fields for older cards */
+function otSteps(t){
+  if(Array.isArray(t.steps)&&t.steps.length)return[...t.steps].sort((a,b)=>(a.n||0)-(b.n||0));
+  const st=t.status,sent=['inmail_sent','connect_sent','connected','replied','done'].includes(st),conn=['connect_sent','connected','replied','done'].includes(st),out=[];
+  if(t.inmail_body||t.inmail_subject)out.push({n:1,kind:'inmail',label:'Send InMail',when:'now',when_note:'Now',subject:t.inmail_subject,body:t.inmail_body,done:sent,legacy:'inmail_sent'});
+  if(t.connection_note)out.push({n:out.length+1,kind:'connection_note',label:'Send connection request with note',when:'right_after',when_note:'Right after the InMail',body:t.connection_note,done:conn,legacy:'connect_sent'});
+  return out}
+const otNext=t=>otSteps(t).find(s=>!s.done)||null;
+const otDueNow=(t,s)=>!!s&&(s.when==='now'||s.when==='right_after'||t.status==='connected'||(s.due_at?Date.parse(s.due_at)<=Date.now():false));
+/* outstanding = a step is due (or they replied); waiting = everything due is sent; complete = done/dropped */
+function otCat(t){if(!otOpen(t))return'complete';if(t.status==='replied')return'outstanding';const s=otNext(t);return s&&otDueNow(t,s)?'outstanding':'waiting'}
+function otOverdue(t){if(otCat(t)!=='outstanding'||t.status==='replied')return false;const s=otNext(t);return!!(s&&s.due_at&&Date.now()-Date.parse(s.due_at)>864e5)}
+const otOutN=()=>(window.OT||[]).filter(t=>otCat(t)==='outstanding').length;
+const otToSendN=otOutN;
+const otOpenN=id=>otFor(id).filter(otOpen).length;
+const OT_CATL={outstanding:'Outstanding',waiting:'Waiting on reply',complete:'Complete'};
+function otSort(list){const rk={outstanding:0,waiting:1,complete:2};return[...list].sort((a,b)=>{const d=rk[otCat(a)]-rk[otCat(b)];if(d)return d;const oa=otOverdue(a)?0:1,ob=otOverdue(b)?0:1;if(oa!==ob)return oa-ob;return String(b.revision_at||b.updated_at||'').localeCompare(String(a.revision_at||a.updated_at||''))})}
+function otBadge(a){const ts=otFor(a.id),n=ts.filter(t=>otCat(t)==='outstanding').length,o=otOpenN(a.id);if(n)return`<span class="otb due" title="${n} outreach card${n>1?'s':''} with a step due">✉️ ${n} due</span>`;if(o)return`<span class="otb" title="${o} open outreach card${o>1?'s':''}">✉️ ${o} open</span>`;return''}
 function otChar(s){const n=String(s||'').length;return`<span class="otcc${n>300?' over':''}">${n} / 300</span>`}
 async function otCopy(btn,text){const prev=btn.textContent;try{await navigator.clipboard.writeText(text||'');btn.textContent='Copied'}catch(e){const ta=document.createElement('textarea');ta.value=text||'';ta.style.position='fixed';ta.style.left='-9999px';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');btn.textContent='Copied'}catch(_){btn.textContent='Copy failed'}ta.remove()}setTimeout(()=>{btn.textContent=prev},1200)}
-function otCopyBtn(label){return`<button type="button" class="btn ghost otcopy" data-copy="${esc(label)}" style="cursor:pointer">Copy</button>`}
-function otItem(t){
-  const person=t.linkedin_url?`<a href="${esc(t.linkedin_url)}" target="_blank" rel="noopener">${esc(t.person_name||'Unknown')}</a>`:esc(t.person_name||'Unknown');
-  const role=t.jh_id?`<a href="#/app/${esc(t.jh_id)}">${esc(t.company||'Role')} · ${esc(t.jh_id)}</a>`:esc(t.company||'');
-  const rev=[t.revision_at?`Revised ${fmtET(t.revision_at)}`:'',t.chat_stamp||''].filter(Boolean).join(' · ');
+const otCopyBtn=(n,part)=>`<button type="button" class="otcopy" data-n="${n}" data-part="${part}">Copy</button>`;
+function otNextTxt(t){const ss=otSteps(t),s=otNext(t),c=otCat(t);
+  if(c==='complete')return otLabel(t.status);
+  if(t.status==='replied')return'They replied: respond in the thread';
+  if(!s)return ss.length?'All steps sent: waiting on a reply':'No steps yet';
+  const when=c==='waiting'?(s.due_at?` · from ${fmtET(s.due_at)}`:s.when_note?` · ${s.when_note}`:''):'';
+  return`Step ${s.n} of ${ss.length}: ${s.label||OT_KIND[s.kind]||'Next step'}${when}`}
+function otPill(t){const c=otCat(t);if(c==='complete')return`<span class="otpill c-complete">${esc(otLabel(t.status))}</span>`;if(c==='waiting')return`<span class="otpill c-waiting">Waiting</span>`;return`<span class="otpill c-outstanding${otOverdue(t)?' overdue':''}">${otOverdue(t)?'Overdue':'Due now'}</span>`}
+function otPips(t){const ss=otSteps(t);if(!ss.length)return'';return`<span class="otpips" title="${ss.filter(s=>s.done).length} of ${ss.length} steps done">${ss.map(s=>`<i class="${s.done?'on':''}"></i>`).join('')}</span>`}
+function otStep(t,s){
+  const isNote=s.kind==='connection_note',due=!s.done&&otNext(t)===s&&otDueNow(t,s);
+  return`<div class="ots${s.done?' done':''}${due?' due':''}" data-n="${s.n}">
+  <div class="otsh"><label class="otchk"><input type="checkbox" class="otdone" data-n="${s.n}" ${s.done?'checked':''}><span><b>Step ${s.n}</b> · ${esc(s.label||OT_KIND[s.kind]||'')}</span></label>
+   <span class="small muted otwhen">${esc(s.when_note||OT_WHEN[s.when]||'')}</span></div>
+  ${s.subject?`<div class="otf"><div class="otfh"><span class="small muted">Subject</span>${otCopyBtn(s.n,'subject')}</div><div class="otpre">${esc(s.subject)}</div></div>`:''}
+  ${s.body?`<div class="otf"><div class="otfh"><span class="small muted">${esc(OT_KIND[s.kind]||'Message')}${isNote?' '+otChar(s.body):''}</span>${otCopyBtn(s.n,'body')}</div><div class="otpre">${esc(s.body)}</div></div>`:''}
+  <div class="small muted otsm">${s.attachment?`<span class="otatt">📎 Attach ${esc(s.attachment)}</span>`:''}${s.done&&s.done_at?`<span>✓ Done ${esc(fmtET(s.done_at))}</span>`:''}${!s.done&&s.due_at&&s.when==='later'?`<span>Due ${esc(fmtET(s.due_at))}</span>`:''}</div></div>`}
+function otTile(t,i,list){
+  const open=OTF.open===t.id,c=otCat(t),ss=otSteps(t);
+  const person=t.linkedin_url?`<a href="${esc(t.linkedin_url)}" target="_blank" rel="noopener">${esc(t.person_name||'LinkedIn profile')} ↗</a>`:esc(t.person_name||'');
+  const role=t.jh_id?`<a href="#/app/${esc(t.jh_id)}">${esc(t.jh_id)}</a>`:'';
   const st=OT_ST.map(([v,l])=>`<option value="${v}" ${t.status===v?'selected':''}>${l}</option>`).join('');
-  return`<div class="ott ${otOpen(t)?'open':'closed'}" data-id="${t.id}">
- <div class="oth"><div><div class="otwho"><b>${person}</b>${t.person_title?` · ${esc(t.person_title)}`:''}</div>
- <div class="small muted otmeta">${role}${t.channel?` · ${esc(t.channel)}`:''}</div></div>
- <span class="chip ${otChipCls(t.status)}">${esc(otLabel(t.status))}</span></div>
- <div class="otblk"><div class="otblkhd"><b class="small">Subject</b>${otCopyBtn('subject')}</div><div class="otpre ot-subject">${esc(t.inmail_subject||'')||'<span class="muted">—</span>'}</div></div>
- <div class="otblk"><div class="otblkhd"><b class="small">InMail</b>${otCopyBtn('inmail')}</div><div class="otpre ot-inmail">${esc(t.inmail_body||'')||'<span class="muted">—</span>'}</div></div>
- <div class="otblk"><div class="otblkhd"><b class="small">Connection note ${otChar(t.connection_note)}</b>${otCopyBtn('note')}</div><div class="otpre ot-note">${esc(t.connection_note||'')||'<span class="muted">—</span>'}</div></div>
- ${t.notes?`<div class="small muted" style="margin-top:6px">${esc(t.notes)}</div>`:''}
- ${rev?`<div class="small muted" style="margin-top:6px">${esc(rev)}</div>`:''}
- <div class="otst"><label class="small muted">Status <select class="otstatus">${st}</select></label> <span class="small otmsg"></span></div></div>`}
+  const rev=[t.revision_at?`Revised ${fmtET(t.revision_at)}`:'',t.updated_at?`updated ${fmtET(t.updated_at)}`:'',t.created_at?`added ${fmtET(t.created_at)}`:''].filter(Boolean).join(' · ');
+  return`<div class="oti c-${c}${otOverdue(t)?' overdue':''}${open?' open':''}" data-id="${t.id}">
+ <button type="button" class="otrow" aria-expanded="${open}"><span class="otdot"></span>
+  <span class="otmain"><span class="otl1"><b>${esc(t.person_name||'Unknown')}</b> <span class="muted">· ${esc(otCo(t))}${t.jh_id?` · ${esc(t.jh_id)}`:''}</span></span>
+  <span class="otl2 small">${esc(otNextTxt(t))}</span></span>
+  ${otPips(t)}${otPill(t)}<span class="otchev" aria-hidden="true">▸</span></button>
+ ${open?`<div class="otbody">
+  <div class="otnav"><button type="button" class="otprev" ${i<=0?'disabled':''} aria-label="Previous card">‹</button><span class="small muted">${i+1} of ${list.length}</span><button type="button" class="otnextb" ${i>=list.length-1?'disabled':''} aria-label="Next card">›</button><span class="small muted otkb">← → keys</span></div>
+  <div class="otwho"><span class="otin">in</span> ${person}${t.person_title?` <span class="muted">· ${esc(t.person_title)}</span>`:''}</div>
+  <div class="small muted">${esc(t.company||'')}${role?` · ${role}`:''}${t.channel?` · ${esc(t.channel)}`:''}</div>
+  <div class="otsteps">${ss.map(s=>otStep(t,s)).join('')||'<p class="small muted">No steps.</p>'}</div>
+  ${t.notes?`<details class="otnotes"><summary>Notes</summary><div class="small">${esc(t.notes)}</div></details>`:''}
+  <div class="otft"><label class="small muted">Card status <select class="otstatus">${st}</select></label><span class="small otmsg"></span></div>
+  <div class="small muted">${esc(rev)}${t.chat_stamp?` · ${esc(t.chat_stamp)}`:''}</div>
+ </div>`:''}</div>`}
+let OTV=[];/* visible card order for prev/next */
+function otTiles(list){OTV=list.map(t=>t.id);return list.map((t,i)=>otTile(t,i,list)).join('')}
+function otRedraw(){if(location.hash.startsWith('#/outreach'))otDraw();else{const a=A.find(x=>x.id===(location.hash.split('/')[2]||''));if(a)otMount(a)}otNavBadge()}
+function otToggle(id){OTF.open=OTF.open===id?'':id;otSaveF();otRedraw();if(OTF.open){const el=document.querySelector(`.oti[data-id="${OTF.open}"]`);if(el)el.scrollIntoView({block:'nearest',behavior:'smooth'})}}
+function otGo(d){const i=OTV.indexOf(OTF.open);if(i<0)return;const j=i+d;if(j<0||j>=OTV.length)return;OTF.open=OTV[j];otSaveF();otRedraw();const el=document.querySelector(`.oti[data-id="${OTF.open}"]`);if(el)el.scrollIntoView({block:'start',behavior:'smooth'})}
 function otBind(root){
   if(!root)return;
-  root.querySelectorAll('.ott').forEach(el=>{
+  root.querySelectorAll('.oti').forEach(el=>{
     const t=(window.OT||[]).find(x=>x.id===el.dataset.id);if(!t)return;
-    el.querySelectorAll('.otcopy').forEach(btn=>btn.onclick=()=>{
-      const which=btn.dataset.copy;
-      const text=which==='subject'?t.inmail_subject:which==='inmail'?t.inmail_body:t.connection_note;
-      otCopy(btn,text||'');
-    });
-    const sel=el.querySelector('.otstatus');
-    if(sel)sel.onchange=()=>otSaveStatus(t,sel.value,el);
+    el.querySelector('.otrow').onclick=()=>otToggle(t.id);
+    const p=el.querySelector('.otprev'),n=el.querySelector('.otnextb');if(p)p.onclick=()=>otGo(-1);if(n)n.onclick=()=>otGo(1);
+    el.querySelectorAll('.otcopy').forEach(btn=>btn.onclick=()=>{const s=otSteps(t).find(x=>String(x.n)===btn.dataset.n);otCopy(btn,s?(btn.dataset.part==='subject'?s.subject:s.body):'')});
+    el.querySelectorAll('.otdone').forEach(cb=>cb.onchange=()=>otSaveStep(t,+cb.dataset.n,cb.checked,el));
+    const sel=el.querySelector('.otstatus');if(sel)sel.onchange=()=>otSaveStatus(t,sel.value,el);
   });
 }
+function otMsg(el,txt,ok){const m=el&&el.querySelector('.otmsg');if(m){m.style.color=ok===true?'#067647':ok===false?'#b42318':'';m.textContent=txt}}
+function otPut(row){const i=(window.OT||[]).findIndex(x=>x.id===row.id);if(i>=0)window.OT[i]=row}
+async function otSaveStep(t,n,done,el){
+  const s=otSteps(t).find(x=>x.n===n);if(!s)return;
+  if(s.legacy){/* older card without steps: a tick moves the card status */
+    const target=done?s.legacy:(s.legacy==='connect_sent'?'inmail_sent':'to_send');return otSaveStatus(t,target,el)}
+  otMsg(el,'Saving…');
+  const res=await window.SB.rpc('outreach_set_step',{p_id:t.id,p_n:n,p_done:done});
+  const row=Array.isArray(res.data)?res.data[0]:res.data;
+  if(res.error||!row||!row.id){otMsg(el,'Error: '+(res.error?res.error.message:'not saved (sign-in expired?)'),false);const cb=el.querySelector(`.otdone[data-n="${n}"]`);if(cb)cb.checked=!done;return}
+  otPut(row);otRedraw();otMsg(document.querySelector(`.oti[data-id="${t.id}"]`),'Saved ✓',true)}
 async function otSaveStatus(t,status,el){
-  const m=el.querySelector('.otmsg');if(m){m.style.color='';m.textContent='Saving…'}
+  otMsg(el,'Saving…');
   const res=await window.SB.from('outreach_tasks').update({status}).eq('id',t.id).select();
-  if(res.error||!res.data||!res.data.length){if(m){m.style.color='#b42318';m.textContent='Error: '+(res.error?res.error.message:'not saved (permission or sign-in expired)')}el.querySelector('.otstatus').value=t.status;return}
-  const i=(window.OT||[]).findIndex(x=>x.id===t.id);if(i>=0)window.OT[i]=res.data[0];
+  if(res.error||!res.data||!res.data.length){otMsg(el,'Error: '+(res.error?res.error.message:'not saved (permission or sign-in expired)'),false);const sel=el.querySelector('.otstatus');if(sel)sel.value=t.status;return}
+  otPut(res.data[0]);
   const a=A.find(x=>x.id===res.data[0].jh_id);
-  if(location.hash.startsWith('#/outreach'))otPage();
-  else if(a){otMount(a);const row=document.querySelector(`#tb tr.r[data-id="${a.id}"]`);if(row){const old=row.querySelector('.otb');const b=otBadge(a);if(old&&b)old.outerHTML=b;else if(old&&!b)old.remove();else if(!old&&b){const co=row.querySelector('.co');if(co)co.insertAdjacentHTML('beforeend',' '+b)}}}
-  const el2=document.querySelector(`.ott[data-id="${t.id}"] .otmsg`);if(el2){el2.style.color='#067647';el2.textContent='Saved ✓'}
-}
+  if(!location.hash.startsWith('#/outreach')&&a){const row=document.querySelector(`#tb tr.r[data-id="${a.id}"]`);if(row){const old=row.querySelector('.otb');const b=otBadge(a);if(old&&b)old.outerHTML=b;else if(old&&!b)old.remove();else if(!old&&b){const co=row.querySelector('.co');if(co)co.insertAdjacentHTML('beforeend',' '+b)}}}
+  otRedraw();otMsg(document.querySelector(`.oti[data-id="${t.id}"]`),'Saved ✓',true)}
+function otNavBadge(){const a=document.querySelector('nav a[data-v="outreach"]');if(!a)return;let b=a.querySelector('.navb');const n=otOutN();
+  if(!n){if(b)b.remove();return}if(!b){a.insertAdjacentHTML('beforeend',' <span class="navb"></span>');b=a.querySelector('.navb')}b.textContent=n;b.title=`${n} outreach card${n>1?'s':''} with a step due`}
+/* Role detail: same compact tiles for this role's cards */
 function otCard(a){
   const ts=otSort(otFor(a.id));
   if(!ts.length&&window.OT_OK!==false)return'';
-  const open=ts.filter(otOpen).length;
-  return`<div class="card otcard" id="otcard" style="margin-bottom:16px"><h2>✉️ Outreach <span class="small muted" style="font-weight:400">· ${open} open of ${ts.length} · copy the InMail and connection note, then update the status</span></h2>
- ${window.OT_OK===false?'<p class="small" style="color:#b42318">Outreach table not set up yet (run alter_v164_outreach_tasks.sql).</p>':''}${ts.map(otItem).join('')}</div>`}
+  const due=ts.filter(t=>otCat(t)==='outstanding').length;
+  return`<div class="card otcard" id="otcard" style="margin-bottom:16px"><h2>✉️ Outreach <span class="small muted" style="font-weight:400">· ${due?`<b class="otdue">${due} due</b> · `:''}${ts.length} card${ts.length>1?'s':''} · tap a card to open its steps</span></h2>
+ ${window.OT_OK===false?'<p class="small" style="color:#b42318">Outreach table not set up yet (run alter_v164_outreach_tasks.sql).</p>':''}<div class="otlist">${otTiles(ts)}</div></div>`}
 function otHeader(a){
-  const n=otFor(a.id).filter(t=>t.status==='to_send').length,o=otOpenN(a.id);
-  const label=n?`✉️ ${n} to send`:o?`✉️ ${o} open outreach`:'';
+  const ts=otFor(a.id),n=ts.filter(t=>otCat(t)==='outstanding').length,o=otOpenN(a.id);
+  const label=n?`✉️ ${n} outreach due`:o?`✉️ ${o} open outreach`:'';
   const h=$('#app .chip.othd');
   if(h){if(!label)h.remove();else h.textContent=label;return}
   if(!label)return;
@@ -792,25 +849,52 @@ function otMount(a){
   else if(html){const aq=$('#aqcard');if(aq)aq.insertAdjacentHTML('afterend',html);else{const col=document.querySelector('.dgrid > div:first-child');if(!col)return;col.insertAdjacentHTML('afterbegin',html)}}
   otHeader(a);otBind($('#otcard'));
 }
+/* Outreach tab */
 function otPage(){
   document.querySelectorAll('nav a').forEach(x=>x.classList.toggle('on',x.dataset.v==='outreach'));
-  const all=window.OT||[];
-  const open=otSort(all.filter(otOpen));const closed=otSort(all.filter(t=>!otOpen(t)));
-  const n=otToSendN();
-  $('#app').innerHTML=`<div class="card" style="margin-bottom:16px"><h1>Outreach</h1>
- <p class="sub">InMail and connection-request drafts in one place, so they don't fall by the wayside. Copy a field, send it from LinkedIn yourself, then mark the status here. Open tasks are listed first.</p>
- <div class="small muted">${n} to send · ${open.length} open · ${all.length} total${window.OT_OK===false?' · table not set up yet (run alter_v164_outreach_tasks.sql)':''}</div></div>
- ${open.length?`<div class="card otcard" style="margin-bottom:16px"><h2>Open</h2>${open.map(otItem).join('')}</div>`:''}
- ${closed.length?`<div class="card otcard closed" style="margin-bottom:16px"><h2>Done / dropped</h2>${closed.map(otItem).join('')}</div>`:''}
- ${!all.length?'<div class="card"><p class="muted">No outreach tasks yet.</p></div>':''}`;
-  otBind($('#app'));
+  const deep=location.hash.split('/')[2];if(deep&&(window.OT||[]).some(t=>t.id===deep)){OTF.open=deep;otSaveF()}
+  const all=window.OT||[];const cos=[...new Set(all.map(t=>`${t.jh_id||''}|${otCo(t)}`))].sort();
+  $('#app').innerHTML=`<div class="card otpage"><div class="othd"><div><h1>Outreach</h1><p class="sub">LinkedIn and email outreach, one card per person. Copy each step, send it yourself, then tick it done.</p></div>
+  <div class="otlegend small muted"><span><i class="lg c-outstanding"></i>Due now</span><span><i class="lg c-overdue"></i>Overdue</span><span><i class="lg c-waiting"></i>Waiting on reply</span><span><i class="lg c-complete"></i>Complete</span></div></div>
+  <div class="otfilters"><div class="otseg" role="tablist">${['active','outstanding','waiting','complete','all'].map(k=>`<button type="button" data-cat="${k}" class="${OTF.cat===k?'on':''}">${{active:'Active',outstanding:'Outstanding',waiting:'Waiting<span class="hm"> on reply</span>',complete:'Complete',all:'All'}[k]} <span class="otn" data-n="${k}"></span></button>`).join('')}</div>
+   <select id="otco"><option value="">All companies / JH</option>${cos.map(k=>{const[j,c]=k.split('|');return`<option value="${esc(k)}" ${OTF.co===k?'selected':''}>${esc(c)}${j?` · ${esc(j)}`:''}</option>`}).join('')}</select>
+   <input id="otq" type="search" placeholder="Search name, company, text…" value="${esc(OTF.q)}">
+   <label class="chkf otsd"><input type="checkbox" id="otsd" ${OTF.showDone?'checked':''}> Show completed</label></div>
+  ${window.OT_OK===false?'<p class="small" style="color:#b42318">Outreach table not set up yet (run alter_v164_outreach_tasks.sql).</p>':''}
+  <div id="otl" class="otlist"></div><div id="otdonewrap"></div><div id="otcnt" class="small muted" style="margin-top:8px"></div></div>`;
+  $('#app').querySelectorAll('.otseg button').forEach(b=>b.onclick=()=>{OTF.cat=b.dataset.cat;otSaveF();$('#app').querySelectorAll('.otseg button').forEach(x=>x.classList.toggle('on',x===b));otDraw()});
+  $('#otco').onchange=e=>{OTF.co=e.target.value;otSaveF();otDraw()};
+  $('#otq').oninput=e=>{OTF.q=e.target.value;otSaveF();otDraw()};
+  $('#otsd').onchange=e=>{OTF.showDone=e.target.checked;otSaveF();otDraw()};
+  otDraw();
+  if(OTF.open){const el=document.querySelector(`.oti[data-id="${OTF.open}"]`);if(el)el.scrollIntoView({block:'nearest'})}
 }
+function otDraw(){
+  const all=window.OT||[],q=OTF.q.toLowerCase();
+  const base=all.filter(t=>(!OTF.co||`${t.jh_id||''}|${otCo(t)}`===OTF.co)&&(!q||[t.person_name,t.person_title,t.company,t.jh_id,t.inmail_subject,t.inmail_body,t.connection_note,t.notes,JSON.stringify(t.steps||[])].join(' ').toLowerCase().includes(q)));
+  const cnt={outstanding:0,waiting:0,complete:0};base.forEach(t=>cnt[otCat(t)]++);
+  const nums={active:cnt.outstanding+cnt.waiting,outstanding:cnt.outstanding,waiting:cnt.waiting,complete:cnt.complete,all:base.length};
+  document.querySelectorAll('.otseg .otn').forEach(s=>{s.textContent=nums[s.dataset.n];s.classList.toggle('hot',s.dataset.n==='outstanding'&&nums.outstanding>0)});
+  const pick=OTF.cat==='active'?t=>otCat(t)!=='complete':OTF.cat==='all'?()=>true:t=>otCat(t)===OTF.cat;
+  const main=otSort(base.filter(pick));
+  const extra=(OTF.showDone&&(OTF.cat==='active'||OTF.cat==='outstanding'||OTF.cat==='waiting'))?otSort(base.filter(t=>otCat(t)==='complete')):[];
+  const list=[...main,...extra];
+  OTV=list.map(t=>t.id);
+  const tile=(t)=>otTile(t,OTV.indexOf(t.id),list);
+  const l=$('#otl');if(!l)return;
+  l.innerHTML=main.map(tile).join('')||`<div class="otempty small muted">${OTF.cat==='outstanding'?'Nothing due right now. ✓':'No outreach cards match.'}${!OTF.showDone&&cnt.complete&&OTF.cat!=='complete'&&OTF.cat!=='all'?` ${cnt.complete} completed hidden.`:''}</div>`;
+  $('#otdonewrap').innerHTML=extra.length?`<div class="otgrp small muted">Completed</div><div class="otlist done">${extra.map(tile).join('')}</div>`:'';
+  $('#otcnt').textContent=`Showing ${list.length} of ${all.length}${!OTF.showDone&&cnt.complete&&!['complete','all'].includes(OTF.cat)?` · ${cnt.complete} completed hidden (tick “Show completed”)`:''}`;
+  otBind($('#app'));otNavBadge();
+}
+document.addEventListener('keydown',ev=>{if(!OTF.open||ev.altKey||ev.ctrlKey||ev.metaKey)return;if(/^(INPUT|TEXTAREA|SELECT)$/.test((ev.target&&ev.target.tagName)||''))return;if(!document.querySelector(`.oti.open[data-id="${OTF.open}"]`))return;
+  if(ev.key==='ArrowLeft'){ev.preventDefault();otGo(-1)}else if(ev.key==='ArrowRight'){ev.preventDefault();otGo(1)}else if(ev.key==='Escape'){otToggle(OTF.open)}});
 const _fa164=filteredApps;
-filteredApps=function(){let r=_fa164();if(F.ot==='to_send')r=r.filter(a=>otFor(a.id).some(t=>t.status==='to_send'));else if(F.ot==='open')r=r.filter(a=>otOpenN(a.id));else if(F.ot==='any')r=r.filter(a=>otFor(a.id).length);return r};
+filteredApps=function(){let r=_fa164();if(F.ot==='to_send')r=r.filter(a=>otFor(a.id).some(t=>otCat(t)==='outstanding'));else if(F.ot==='open')r=r.filter(a=>otOpenN(a.id));else if(F.ot==='any')r=r.filter(a=>otFor(a.id).length);return r};
 const _list164=list,_rows164=rows;
 list=function(){_list164();const fl=document.querySelector('.filters');
  if(fl&&!$('#otf')){const n=otToSendN();
-  const o=[['','Any outreach'],['to_send',`Outreach to send (${n})`],['open','Has open outreach'],['any','Has any outreach']];
+  const o=[['','Any outreach'],['to_send',`Outreach due (${n})`],['open','Has open outreach'],['any','Has any outreach']];
   const h=`<select id="otf" title="Outreach tasks">${o.map(([v,l])=>`<option value="${v}" ${F.ot===v?'selected':''}>${l}</option>`).join('')}</select>`;
   const aqf=$('#aqf');if(aqf)aqf.insertAdjacentHTML('afterend',h);else{const chk=fl.querySelector('.chkf');if(chk)chk.insertAdjacentHTML('beforebegin',h);else fl.insertAdjacentHTML('beforeend',h)}
   $('#otf').onchange=e=>{F.ot=e.target.value;try{sessionStorage.setItem(OT_KEY,F.ot)}catch(_){}rows()}}
@@ -827,10 +911,19 @@ dash=function(){
   const ul=[...document.querySelectorAll('#app .card h2')].find(h=>/Action needed/.test(h.textContent));
   const list_=ul&&ul.parentElement.querySelector('ul.list');
   if(list_&&!list_.querySelector('#otgo')){
-    const names=[...new Set((window.OT||[]).filter(t=>t.status==='to_send').map(t=>t.company||t.jh_id))];
-    list_.insertAdjacentHTML('afterbegin',`<li><a href="#/outreach" id="otgo"><b>✉️ ${n} outreach task${n===1?'':'s'} to send</b></a><div class="small muted">${names.slice(0,5).map(esc).join(', ')}${names.length>5?'…':''} — InMail and connection note, ready to copy</div></li>`);
+    const names=[...new Set((window.OT||[]).filter(t=>otCat(t)==='outstanding').map(t=>otCo(t)))];
+    list_.insertAdjacentHTML('afterbegin',`<li><a href="#/outreach" id="otgo"><b>✉️ ${n} outreach card${n===1?'':'s'} with a step due</b></a><div class="small muted">${names.slice(0,5).map(esc).join(', ')}${names.length>5?'…':''} — messages ready to copy</div></li>`);
   }
 };
 const _detail164=detail;
 detail=function(id){_detail164(id);const a=A.find(x=>x.id===id);if(!a)return;otMount(a)};
 nav();
+otNavBadge();
+/* v1.7.0: on narrow screens the nav scrolls sideways; keep the current tab in view */
+function navIntoView(){const n=document.getElementById('nav'),a=n&&n.querySelector('a.on');if(!a||n.scrollWidth<=n.clientWidth)return;const nr=n.getBoundingClientRect(),ar=a.getBoundingClientRect();n.scrollLeft+=ar.left-nr.left-(nr.width-ar.width)/2}
+addEventListener('hashchange',()=>setTimeout(navIntoView,0));navIntoView();
+/* v1.7.0: Applications table lives in a horizontal-scroll wrapper so it can never run off its card */
+const _list170=list;
+list=function(){_list170();const tb=document.getElementById('tb');const t=tb&&tb.closest('table');if(!t)return;const c=t.closest('.card');if(c)c.classList.add('lcard');
+ if(!t.parentElement.classList.contains('tblwrap')){const w=document.createElement('div');w.className='tblwrap';t.parentNode.insertBefore(w,t);w.appendChild(t)}};
+if(location.hash.startsWith('#/list'))list();

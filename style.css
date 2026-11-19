@@ -138,19 +138,64 @@ th.wmcol,td.wmcol{min-width:88px;max-width:130px;white-space:normal;vertical-ali
 
 .person .pn{color:inherit;text-decoration:underline;text-underline-offset:2px}
 
-/* v1.6.4 Outreach tasks */
+/* v1.6.4 Outreach tasks → v1.7.0 compact tiles, status colors, accordion, prev/next */
 .otb{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:#eef3ff;color:#1d3fbf;border:1px solid #c7d4fe;font-size:11px;font-weight:600;white-space:nowrap;vertical-align:middle}
-.chip.othd{display:inline-block;width:auto;background:#eef3ff;color:#1d3fbf;border:1px solid #c7d4fe;text-decoration:none;cursor:pointer}
-.otcard{border-left:4px solid #2f5bea}
-.ott{padding:14px 0;border-top:1px solid #eaecf0}.ott:first-of-type{border-top:0}
-.ott.closed{opacity:.78}
-.oth{display:flex;gap:8px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
-.otwho{font-size:16px}
-.otmeta{margin:2px 0 8px}
-.otblk{margin:8px 0}
-.otblkhd{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
-.otpre{white-space:pre-wrap;background:#f8fafc;border:1px solid #eaecf0;border-radius:8px;padding:8px 10px;font-size:14px;line-height:1.45}
-.otcc{font-size:11px;color:#667085}.otcc.over{color:#b42318;font-weight:600}
-.otst{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
-.otst select{padding:6px 8px;border:1px solid #d9dde6;border-radius:8px;font:inherit}
-.otcopy{padding:4px 10px;font-size:12px}
+.otb.due{background:#fff4e5;color:#b54708;border-color:#fedf89}
+.chip.othd{display:inline-block;width:auto;background:#fff4e5;color:#b54708;border:1px solid #fedf89;text-decoration:none;cursor:pointer}
+.otcard{border-left:4px solid #f79009}.otdue{color:#b54708}
+.navb{display:inline-block;min-width:18px;padding:0 5px;margin-left:2px;border-radius:999px;background:#f79009;color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;vertical-align:1px}
+.otpage{padding:16px 18px}
+.othd{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start}.othd .sub{margin:0 0 10px}
+.otlegend{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px}.otlegend span{display:inline-flex;align-items:center;gap:5px}
+.lg{display:inline-block;width:9px;height:9px;border-radius:50%}
+.lg.c-outstanding{background:#f79009}.lg.c-overdue{background:#d92d20}.lg.c-waiting{background:#2f5bea}.lg.c-complete{background:#c0c5d0}
+.otfilters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px}
+.otfilters select,.otfilters input[type=search]{padding:7px 10px;border:1px solid #d9dde6;border-radius:8px;font:inherit;background:#fff}.otfilters input[type=search]{flex:1;min-width:180px}
+.otseg{display:inline-flex;flex-wrap:wrap;border:1px solid #d9dde6;border-radius:9px;overflow:hidden;background:#fff}
+.otseg button{border:0;border-right:1px solid #e5e8ef;background:#fff;padding:7px 11px;font:inherit;font-size:13px;color:#4a5263;cursor:pointer}.otseg button:last-child{border-right:0}
+.otseg button.on{background:#eef2ff;color:#2f5bea;font-weight:600}
+.otn{display:inline-block;min-width:16px;padding:0 5px;border-radius:999px;background:#f1f3f8;color:#4a5263;font-size:11px;font-weight:600;text-align:center}.otn.hot{background:#f79009;color:#fff}
+.otsd{padding:6px 10px}
+.otlist{display:flex;flex-direction:column;gap:6px}
+.otgrp{margin:14px 0 6px;text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+.otempty{padding:14px;border:1.5px dashed #d0d5dd;border-radius:10px;text-align:center}
+.oti{--c:#2f5bea;border:1px solid #e5e8ef;border-left:4px solid var(--c);border-radius:10px;background:#fff;overflow:hidden}
+.oti.c-outstanding{--c:#f79009;background:#fffcf5}.oti.overdue{--c:#d92d20;background:#fffbfa}.oti.c-waiting{--c:#2f5bea}.oti.c-complete{--c:#c0c5d0;opacity:.72}
+.oti.open{box-shadow:0 2px 10px rgba(16,24,40,.08);opacity:1}
+.otrow{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border:0;background:transparent;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.otrow:hover{background:rgba(47,91,234,.04)}
+.otdot{flex:none;width:9px;height:9px;border-radius:50%;background:var(--c)}
+.otmain{flex:1;min-width:0;display:flex;flex-direction:column}
+.otl1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.otl2{color:#4a5263;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oti.c-outstanding .otl2{color:#93370d;font-weight:500}.oti.overdue .otl2{color:#b42318}
+.otpips{display:inline-flex;gap:3px;flex:none}.otpips i{width:14px;height:5px;border-radius:3px;background:#e4e7ec}.otpips i.on{background:#12b76a}
+.otpill{flex:none;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.otpill.c-outstanding{background:#fef0c7;color:#93370d}.otpill.overdue{background:#fee4e2;color:#b42318}.otpill.c-waiting{background:#eef2ff;color:#2f5bea}.otpill.c-complete{background:#f1f3f8;color:#667085}
+.otchev{flex:none;color:#98a2b3;transition:transform .15s}.oti.open .otchev{transform:rotate(90deg)}
+.otbody{padding:4px 14px 12px 33px;border-top:1px solid #f0f2f6}
+.otnav{display:flex;align-items:center;gap:8px;margin:8px 0 6px}
+.otnav button{width:30px;height:30px;border:1px solid #d9dde6;border-radius:8px;background:#fff;font-size:18px;line-height:1;color:#2f5bea;cursor:pointer}.otnav button:disabled{color:#c0c5d0;cursor:default}
+.otkb{margin-left:auto}
+.otwho{font-size:15px;margin-top:2px}.otin{display:inline-block;width:18px;height:18px;border-radius:4px;background:#0a66c2;color:#fff;font-size:11px;font-weight:700;text-align:center;line-height:18px;vertical-align:1px}
+.otsteps{margin-top:10px;display:flex;flex-direction:column;gap:8px}
+.ots{border:1px solid #eaecf0;border-radius:9px;padding:8px 10px;background:#fff}
+.ots.due{border-color:#fedf89;background:#fffaeb}.ots.done{background:#f9fafb}.ots.done .otpre{color:#667085}
+.otsh{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.otchk{display:inline-flex;align-items:center;gap:7px;cursor:pointer}.otchk input{width:16px;height:16px;accent-color:#12b76a}
+.ots.done .otchk span{text-decoration:line-through;color:#667085}
+.otf{margin-top:6px}.otfh{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px}
+.otpre{white-space:pre-wrap;background:#f8fafc;border:1px solid #eaecf0;border-radius:7px;padding:7px 9px;font-size:13px;line-height:1.45;max-height:420px;overflow:auto}
+.otcopy{border:1px solid #d0d5dd;background:#fff;border-radius:6px;padding:2px 10px;font:inherit;font-size:12px;color:#344054;cursor:pointer}.otcopy:hover{background:#f2f4f7}
+.otcc{font-size:11px;color:#667085;margin-left:4px}.otcc.over{color:#b42318;font-weight:600}
+.otsm{display:flex;gap:12px;flex-wrap:wrap;margin-top:5px}.otsm:empty{display:none}.otatt{color:#344054;font-weight:600}
+.otnotes{margin-top:8px}.otnotes summary{font-size:12px}.otnotes div{white-space:pre-wrap;margin-top:4px;color:#4a5263}
+.otft{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0 4px}.otft select{padding:5px 8px;border:1px solid #d9dde6;border-radius:8px;font:inherit}
+@media(max-width:640px){.otpage{padding:12px}.otseg{width:100%}.otseg button{flex:1 1 auto;padding:7px 6px;font-size:12px}.otfilters select,.otfilters input[type=search]{flex:1 1 100%}
+ .otrow{padding:9px 10px;gap:8px}.otpips{display:none}.otbody{padding:4px 10px 12px 12px}.otkb{display:none}.otpre{max-height:none}.hm{display:none}
+ .otseg{display:flex;flex-wrap:nowrap}.otseg button{flex:1 1 auto;min-width:0;padding:7px 3px;font-size:11.5px;white-space:nowrap}.otseg .otn{padding:0 4px;min-width:14px}
+ .top{flex-wrap:wrap;row-gap:6px}.brand b{white-space:nowrap}nav{display:flex;width:100%;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:none}nav a{flex:none;padding:6px 10px;margin-left:0}}
+/* v1.7.0 wider page container; Applications table fits at 1280px+ and scrolls inside its card if ever narrower */
+main{max-width:1640px}
+.tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
+@media(max-width:1440px){main{padding-left:16px;padding-right:16px}.lcard{padding:14px}.lcard th{white-space:normal}.lcard th,.lcard td{padding-left:7px;padding-right:7px}.lcard th.outcol,.lcard td.outcol{min-width:140px}}
+
