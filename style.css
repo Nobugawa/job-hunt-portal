@@ -194,3 +194,8 @@ th.wmcol,td.wmcol{min-width:88px;max-width:130px;white-space:normal;vertical-ali
  .otrow{padding:9px 10px;gap:8px}.otpips{display:none}.otbody{padding:4px 10px 12px 12px}.otkb{display:none}.otpre{max-height:none}.hm{display:none}
  .otseg{display:flex;flex-wrap:nowrap}.otseg button{flex:1 1 auto;min-width:0;padding:7px 3px;font-size:11.5px;white-space:nowrap}.otseg .otn{padding:0 4px;min-width:14px}
  .top{flex-wrap:wrap;row-gap:6px}.brand b{white-space:nowrap}nav{display:flex;width:100%;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:none}nav a{flex:none;padding:6px 10px;margin-left:0}}
+/* v1.7.0 wider page container; Applications table fits at 1280px+ and scrolls inside its card if ever narrower */
+main{max-width:1640px}
+.tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
+@media(max-width:1440px){main{padding-left:16px;padding-right:16px}.lcard{padding:14px}.lcard th{white-space:normal}.lcard th,.lcard td{padding-left:7px;padding-right:7px}.lcard th.outcol,.lcard td.outcol{min-width:140px}}
+

@@ -922,3 +922,8 @@ otNavBadge();
 /* v1.7.0: on narrow screens the nav scrolls sideways; keep the current tab in view */
 function navIntoView(){const n=document.getElementById('nav'),a=n&&n.querySelector('a.on');if(!a||n.scrollWidth<=n.clientWidth)return;const nr=n.getBoundingClientRect(),ar=a.getBoundingClientRect();n.scrollLeft+=ar.left-nr.left-(nr.width-ar.width)/2}
 addEventListener('hashchange',()=>setTimeout(navIntoView,0));navIntoView();
+/* v1.7.0: Applications table lives in a horizontal-scroll wrapper so it can never run off its card */
+const _list170=list;
+list=function(){_list170();const tb=document.getElementById('tb');const t=tb&&tb.closest('table');if(!t)return;const c=t.closest('.card');if(c)c.classList.add('lcard');
+ if(!t.parentElement.classList.contains('tblwrap')){const w=document.createElement('div');w.className='tblwrap';t.parentNode.insertBefore(w,t);w.appendChild(t)}};
+if(location.hash.startsWith('#/list'))list();
