@@ -28,6 +28,7 @@ async function load(){
  window.INTERACTIONS=ints.map(i=>({contact:i.contact_id,date:i.date,channel:i.channel,direction:i.direction,status:i.status,summary:i.summary,next:i.next_step}));
  const rrT=await sb.from('role_ratings').select('*').limit(5000);window.RATINGS_OK=!rrT.error;window.RATINGS={};(rrT.data||[]).forEach(r=>window.RATINGS[r.application_id]=r);/* v1.5.7 My rating */
  const aqT=await sb.from('application_questions').select('*').neq('status','withdrawn').order('sort').order('created_at').limit(5000);window.AQ_OK=!aqT.error;window.AQ=aqT.data||[];/* v1.5.9 Questions for Philos */
+ const otT=await sb.from('outreach_tasks').select('*').order('revision_at',{ascending:false}).limit(5000);window.OT_OK=!otT.error;window.OT=otT.data||[];/* v1.6.4 Outreach tasks */
  window.SB=sb;window.ACTION_ITEMS=items.filter(i=>i.status==='open');
  window.DATA_AS_OF=(meta.find(m=>m.key==='data_as_of')||{}).value||new Date().toISOString().slice(0,10);
  document.getElementById('nav').style.display='';const s=document.createElement('script');s.src='app.js?v='+encodeURIComponent(C.VERSION);document.body.appendChild(s)}
