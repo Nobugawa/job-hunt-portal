@@ -189,6 +189,7 @@ th.wmcol,td.wmcol{min-width:88px;max-width:130px;white-space:normal;vertical-ali
 .otcc{font-size:11px;color:#667085;margin-left:4px}.otcc.over{color:#b42318;font-weight:600}
 .otsm{display:flex;gap:12px;flex-wrap:wrap;margin-top:5px}.otsm:empty{display:none}.otatt{color:#344054;font-weight:600}
 /* v1.7.1: outreach attach label becomes a download link when attachment_path is set */
+/* v1.7.2: that link uses the role's descriptive résumé filename, not a generic Philos_Kim_Resume.pdf */
 .otatt a{color:#155eef;font-weight:600;text-decoration:none}.otatt a:hover{text-decoration:underline}
 .otnotes{margin-top:8px}.otnotes summary{font-size:12px}.otnotes div{white-space:pre-wrap;margin-top:4px;color:#4a5263}
 .otft{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0 4px}.otft select{padding:5px 8px;border:1px solid #d9dde6;border-radius:8px;font:inherit}
