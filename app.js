@@ -721,7 +721,9 @@ nav();
 /* ===== v1.6.4: Outreach tasks (outreach_tasks; InMail + connection request in one place) =====
    v1.7.0: compact tiles with a status color, filters, accordion expand/collapse, prev/next arrows,
    and ordered multi-step sequences (outreach_tasks.steps). Legacy cards (no steps) become 1–2 steps
-   derived from inmail_subject/inmail_body/connection_note + status. */
+   derived from inmail_subject/inmail_body/connection_note + status.
+   v1.7.1: if a step has attachment_path in the private docs bucket, the Attach label is a download
+   link; a signed URL is created on click for the signed-in user (same path as application PDFs). */
 const OT_ST=[['to_send','To send'],['inmail_sent','InMail sent'],['connect_sent','Connection request sent'],['connected','Connected'],['replied','Replied'],['done','Done'],['dropped','Dropped']];
 const OT_KEY='jhp_list_ot',OTF_KEY='jhp_ot_f170';
 F.ot=(()=>{try{return sessionStorage.getItem(OT_KEY)||''}catch(e){return''}})();
@@ -762,6 +764,8 @@ function otNextTxt(t){const ss=otSteps(t),s=otNext(t),c=otCat(t);
   return`Step ${s.n} of ${ss.length}: ${s.label||OT_KIND[s.kind]||'Next step'}${when}`}
 function otPill(t){const c=otCat(t);if(c==='complete')return`<span class="otpill c-complete">${esc(otLabel(t.status))}</span>`;if(c==='waiting')return`<span class="otpill c-waiting">Waiting</span>`;return`<span class="otpill c-outstanding${otOverdue(t)?' overdue':''}">${otOverdue(t)?'Overdue':'Due now'}</span>`}
 function otPips(t){const ss=otSteps(t);if(!ss.length)return'';return`<span class="otpips" title="${ss.filter(s=>s.done).length} of ${ss.length} steps done">${ss.map(s=>`<i class="${s.done?'on':''}"></i>`).join('')}</span>`}
+function otAttPath(s){const p=String(s&&s.attachment_path||'');return p&&!p.startsWith('/')&&!/^file:/i.test(p)?p:''}
+function otAttHTML(s){const label=s.attachment||(otAttPath(s).split('/').pop());if(!label)return'';const p=otAttPath(s);return p?`<span class="otatt"><a href="#" class="otattlink" data-path="${esc(p)}">📎 Attach ${esc(label)}</a></span>`:`<span class="otatt">📎 Attach ${esc(label)}</span>`}
 function otStep(t,s){
   const isNote=s.kind==='connection_note',due=!s.done&&otNext(t)===s&&otDueNow(t,s);
   return`<div class="ots${s.done?' done':''}${due?' due':''}" data-n="${s.n}">
@@ -769,7 +773,7 @@ function otStep(t,s){
    <span class="small muted otwhen">${esc(s.when_note||OT_WHEN[s.when]||'')}</span></div>
   ${s.subject?`<div class="otf"><div class="otfh"><span class="small muted">Subject</span>${otCopyBtn(s.n,'subject')}</div><div class="otpre">${esc(s.subject)}</div></div>`:''}
   ${s.body?`<div class="otf"><div class="otfh"><span class="small muted">${esc(OT_KIND[s.kind]||'Message')}${isNote?' '+otChar(s.body):''}</span>${otCopyBtn(s.n,'body')}</div><div class="otpre">${esc(s.body)}</div></div>`:''}
-  <div class="small muted otsm">${s.attachment?`<span class="otatt">📎 Attach ${esc(s.attachment)}</span>`:''}${s.done&&s.done_at?`<span>✓ Done ${esc(fmtET(s.done_at))}</span>`:''}${!s.done&&s.due_at&&s.when==='later'?`<span>Due ${esc(fmtET(s.due_at))}</span>`:''}</div></div>`}
+  <div class="small muted otsm">${otAttHTML(s)}${s.done&&s.done_at?`<span>✓ Done ${esc(fmtET(s.done_at))}</span>`:''}${!s.done&&s.due_at&&s.when==='later'?`<span>Due ${esc(fmtET(s.due_at))}</span>`:''}</div></div>`}
 function otTile(t,i,list){
   const open=OTF.open===t.id,c=otCat(t),ss=otSteps(t);
   const person=t.linkedin_url?`<a href="${esc(t.linkedin_url)}" target="_blank" rel="noopener">${esc(t.person_name||'LinkedIn profile')} ↗</a>`:esc(t.person_name||'');
@@ -802,6 +806,7 @@ function otBind(root){
     el.querySelector('.otrow').onclick=()=>otToggle(t.id);
     const p=el.querySelector('.otprev'),n=el.querySelector('.otnextb');if(p)p.onclick=()=>otGo(-1);if(n)n.onclick=()=>otGo(1);
     el.querySelectorAll('.otcopy').forEach(btn=>btn.onclick=()=>{const s=otSteps(t).find(x=>String(x.n)===btn.dataset.n);otCopy(btn,s?(btn.dataset.part==='subject'?s.subject:s.body):'')});
+    el.querySelectorAll('.otattlink').forEach(a=>a.onclick=ev=>{ev.preventDefault();ev.stopPropagation();openDoc(a.dataset.path,a)});
     el.querySelectorAll('.otdone').forEach(cb=>cb.onchange=()=>otSaveStep(t,+cb.dataset.n,cb.checked,el));
     const sel=el.querySelector('.otstatus');if(sel)sel.onchange=()=>otSaveStatus(t,sel.value,el);
   });
